@@ -1,0 +1,62 @@
+{
+  "generated_at": "2024-01-15T10:15:00Z",
+  "entries": [
+    {
+      "id": "kb-0001",
+      "title": "Database connection pool exhaustion",
+      "symptoms": [
+        "connection pool exhausted",
+        "database connection timed out",
+        "pool utilization above 90%"
+      ],
+      "likely_causes": [
+        "Long-running or slow queries holding connections open",
+        "Underlying database instance is unreachable or overloaded",
+        "Pool size misconfigured for current traffic"
+      ],
+      "recommended_actions": [
+        "Check database instance health and network reachability",
+        "Inspect slow query logs for the affected service",
+        "Temporarily increase pool size or restart the connection pool",
+        "Failover to a standby database instance if available"
+      ]
+    },
+    {
+      "id": "kb-0002",
+      "title": "Downstream service errors from a failing dependency",
+      "symptoms": [
+        "stuck in pending state",
+        "timed out, retrying",
+        "downstream service error"
+      ],
+      "likely_causes": [
+        "A dependency the service calls is degraded or unavailable",
+        "Retries without backoff amplifying load on the failing dependency"
+      ],
+      "recommended_actions": [
+        "Identify which dependency is failing using service status data",
+        "Check if circuit breakers or graceful degradation are active",
+        "Verify retry policies are not overwhelming the downstream service"
+      ]
+    },
+    {
+      "id": "kb-0003",
+      "title": "Elevated latency without elevated error rate",
+      "symptoms": [
+        "p99 latency above baseline",
+        "average latency above baseline",
+        "error rate near baseline"
+      ],
+      "likely_causes": [
+        "Increased traffic volume",
+        "Garbage collection pauses or resource contention",
+        "Slow but successful downstream calls"
+      ],
+      "recommended_actions": [
+        "Compare current request volume against baseline",
+        "Check host-level CPU and memory metrics",
+        "Review recent deploys for performance regressions"
+      ]
+    }
+  ]
+}
