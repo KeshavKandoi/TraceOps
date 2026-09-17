@@ -145,12 +145,32 @@ export function incrementStep(state: AgentState): AgentState {
   };
 }
 
-export function setFinalResponse(
-  state: AgentState,
-  response: InvestigationResponse,
-): AgentState {
+export function setFinalResponse(state: AgentState, response: InvestigationResponse): AgentState {
   return {
     ...state,
     finalResponse: response,
+  };
+}
+
+export interface AddTraceEventInput {
+  type: string;
+  details?: Record<string, unknown>;
+}
+
+export function addTraceEvent(
+  state: AgentState,
+  event: AddTraceEventInput,
+  timestamp: string = new Date().toISOString(),
+): AgentState {
+  const newEvent: TraceEvent = {
+    id: `trace-${state.trace.length + 1}`,
+    timestamp,
+    type: event.type,
+    ...(event.details !== undefined ? { details: event.details } : {}),
+  };
+
+  return {
+    ...state,
+    trace: [...state.trace, newEvent],
   };
 }
