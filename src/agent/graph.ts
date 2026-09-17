@@ -1,4 +1,5 @@
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
+import { z } from "zod";
 import type {
   AgentState,
   AgentMessage,
@@ -96,18 +97,29 @@ function toAgentState(value: GraphStateType): AgentState {
   };
 }
 
-function isValidModelResponse(value: unknown): value is ModelResponse {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const candidate = value as { type?: unknown };
-  if (candidate.type === "final") {
-    return "response" in candidate;
-  }
-  if (candidate.type === "tool_call") {
-    return "toolName" in candidate && "arguments" in candidate;
-  }
-  return false;
+const InvestigationResponseSchema = z.object({
+  objective: z.string(),
+  rootCause: z.string(),
+  summary: z.string(),
+  evidenceIds: z.array(z.string()),
+  createdAt: z.string(),
+});
+
+const ModelResponseSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("tool_call"),
+    toolName: z.string().min(1),
+    arguments: z.record(z.string(), z.unknown()),
+  }),
+  z.object({
+    type: z.literal("final"),
+    response: InvestigationResponseSchema,
+  }),
+]);
+
+function parseModelResponse(value: unknown): ModelResponse | null {
+  const parsed = ModelResponseSchema.safeParse(value);
+  return parsed.success ? (parsed.data as ModelResponse) : null;
 }
 
 function buildModelNode(model: Model, maxSteps: number) {
@@ -140,7 +152,9 @@ function buildModelNode(model: Model, maxSteps: number) {
       };
     }
 
-    if (!isValidModelResponse(rawResponse)) {
+    const response = parseModelResponse(rawResponse);
+
+    if (response === null) {
       const withMessage = addMessage(agentState, {
         role: "system",
         content: "Model returned a malformed response.",
@@ -155,8 +169,6 @@ function buildModelNode(model: Model, maxSteps: number) {
         stopReason: "malformed_response",
       };
     }
-
-    const response = rawResponse;
 
     if (response.type === "final") {
       const withMessage = addMessage(agentState, {
