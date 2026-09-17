@@ -1,0 +1,47 @@
+{
+  "generated_at": "2024-01-15T10:15:00Z",
+  "window_minutes": 5,
+  "baselines": {
+    "payment": { "error_rate": 0.008, "avg_latency_ms": 120, "p99_latency_ms": 280, "requests_per_window": 1400 },
+    "user": { "error_rate": 0.004, "avg_latency_ms": 45, "p99_latency_ms": 110, "requests_per_window": 3200 },
+    "order": { "error_rate": 0.006, "avg_latency_ms": 90, "p99_latency_ms": 210, "requests_per_window": 1800 },
+    "inventory": { "error_rate": 0.003, "avg_latency_ms": 55, "p99_latency_ms": 130, "requests_per_window": 900 },
+    "notification": { "error_rate": 0.002, "avg_latency_ms": 65, "p99_latency_ms": 150, "requests_per_window": 700 }
+  },
+  "metrics": [
+    { "service": "payment", "window_start": "2024-01-15T09:45:00Z", "window_end": "2024-01-15T09:50:00Z", "error_rate": 0.009, "avg_latency_ms": 118, "p99_latency_ms": 275, "requests_per_window": 1390 },
+    { "service": "payment", "window_start": "2024-01-15T09:50:00Z", "window_end": "2024-01-15T09:55:00Z", "error_rate": 0.007, "avg_latency_ms": 122, "p99_latency_ms": 285, "requests_per_window": 1410 },
+    { "service": "payment", "window_start": "2024-01-15T09:55:00Z", "window_end": "2024-01-15T10:00:00Z", "error_rate": 0.010, "avg_latency_ms": 125, "p99_latency_ms": 290, "requests_per_window": 1420 },
+    { "service": "payment", "window_start": "2024-01-15T10:00:00Z", "window_end": "2024-01-15T10:05:00Z", "error_rate": 0.184, "avg_latency_ms": 610, "p99_latency_ms": 2400, "requests_per_window": 1350 },
+    { "service": "payment", "window_start": "2024-01-15T10:05:00Z", "window_end": "2024-01-15T10:10:00Z", "error_rate": 0.412, "avg_latency_ms": 1450, "p99_latency_ms": 5200, "requests_per_window": 1180 },
+    { "service": "payment", "window_start": "2024-01-15T10:10:00Z", "window_end": "2024-01-15T10:15:00Z", "error_rate": 0.467, "avg_latency_ms": 1680, "p99_latency_ms": 5800, "requests_per_window": 1090 },
+
+    { "service": "user", "window_start": "2024-01-15T09:45:00Z", "window_end": "2024-01-15T09:50:00Z", "error_rate": 0.004, "avg_latency_ms": 44, "p99_latency_ms": 108, "requests_per_window": 3180 },
+    { "service": "user", "window_start": "2024-01-15T09:50:00Z", "window_end": "2024-01-15T09:55:00Z", "error_rate": 0.005, "avg_latency_ms": 46, "p99_latency_ms": 112, "requests_per_window": 3210 },
+    { "service": "user", "window_start": "2024-01-15T09:55:00Z", "window_end": "2024-01-15T10:00:00Z", "error_rate": 0.004, "avg_latency_ms": 45, "p99_latency_ms": 109, "requests_per_window": 3230 },
+    { "service": "user", "window_start": "2024-01-15T10:00:00Z", "window_end": "2024-01-15T10:05:00Z", "error_rate": 0.005, "avg_latency_ms": 47, "p99_latency_ms": 115, "requests_per_window": 3190 },
+    { "service": "user", "window_start": "2024-01-15T10:05:00Z", "window_end": "2024-01-15T10:10:00Z", "error_rate": 0.004, "avg_latency_ms": 46, "p99_latency_ms": 111, "requests_per_window": 3220 },
+    { "service": "user", "window_start": "2024-01-15T10:10:00Z", "window_end": "2024-01-15T10:15:00Z", "error_rate": 0.004, "avg_latency_ms": 45, "p99_latency_ms": 110, "requests_per_window": 3240 },
+
+    { "service": "order", "window_start": "2024-01-15T09:45:00Z", "window_end": "2024-01-15T09:50:00Z", "error_rate": 0.006, "avg_latency_ms": 88, "p99_latency_ms": 205, "requests_per_window": 1790 },
+    { "service": "order", "window_start": "2024-01-15T09:50:00Z", "window_end": "2024-01-15T09:55:00Z", "error_rate": 0.007, "avg_latency_ms": 92, "p99_latency_ms": 215, "requests_per_window": 1810 },
+    { "service": "order", "window_start": "2024-01-15T09:55:00Z", "window_end": "2024-01-15T10:00:00Z", "error_rate": 0.006, "avg_latency_ms": 90, "p99_latency_ms": 208, "requests_per_window": 1800 },
+    { "service": "order", "window_start": "2024-01-15T10:00:00Z", "window_end": "2024-01-15T10:05:00Z", "error_rate": 0.058, "avg_latency_ms": 240, "p99_latency_ms": 890, "requests_per_window": 1690 },
+    { "service": "order", "window_start": "2024-01-15T10:05:00Z", "window_end": "2024-01-15T10:10:00Z", "error_rate": 0.095, "avg_latency_ms": 310, "p99_latency_ms": 1150, "requests_per_window": 1540 },
+    { "service": "order", "window_start": "2024-01-15T10:10:00Z", "window_end": "2024-01-15T10:15:00Z", "error_rate": 0.101, "avg_latency_ms": 325, "p99_latency_ms": 1210, "requests_per_window": 1490 },
+
+    { "service": "inventory", "window_start": "2024-01-15T09:45:00Z", "window_end": "2024-01-15T09:50:00Z", "error_rate": 0.003, "avg_latency_ms": 54, "p99_latency_ms": 128, "requests_per_window": 890 },
+    { "service": "inventory", "window_start": "2024-01-15T09:50:00Z", "window_end": "2024-01-15T09:55:00Z", "error_rate": 0.002, "avg_latency_ms": 56, "p99_latency_ms": 132, "requests_per_window": 910 },
+    { "service": "inventory", "window_start": "2024-01-15T09:55:00Z", "window_end": "2024-01-15T10:00:00Z", "error_rate": 0.003, "avg_latency_ms": 55, "p99_latency_ms": 129, "requests_per_window": 900 },
+    { "service": "inventory", "window_start": "2024-01-15T10:00:00Z", "window_end": "2024-01-15T10:05:00Z", "error_rate": 0.003, "avg_latency_ms": 55, "p99_latency_ms": 131, "requests_per_window": 905 },
+    { "service": "inventory", "window_start": "2024-01-15T10:05:00Z", "window_end": "2024-01-15T10:10:00Z", "error_rate": 0.004, "avg_latency_ms": 57, "p99_latency_ms": 135, "requests_per_window": 895 },
+    { "service": "inventory", "window_start": "2024-01-15T10:10:00Z", "window_end": "2024-01-15T10:15:00Z", "error_rate": 0.003, "avg_latency_ms": 54, "p99_latency_ms": 128, "requests_per_window": 915 },
+
+    { "service": "notification", "window_start": "2024-01-15T09:45:00Z", "window_end": "2024-01-15T09:50:00Z", "error_rate": 0.002, "avg_latency_ms": 64, "p99_latency_ms": 148, "requests_per_window": 690 },
+    { "service": "notification", "window_start": "2024-01-15T09:50:00Z", "window_end": "2024-01-15T09:55:00Z", "error_rate": 0.002, "avg_latency_ms": 66, "p99_latency_ms": 152, "requests_per_window": 705 },
+    { "service": "notification", "window_start": "2024-01-15T09:55:00Z", "window_end": "2024-01-15T10:00:00Z", "error_rate": 0.003, "avg_latency_ms": 65, "p99_latency_ms": 149, "requests_per_window": 700 },
+    { "service": "notification", "window_start": "2024-01-15T10:00:00Z", "window_end": "2024-01-15T10:05:00Z", "error_rate": 0.002, "avg_latency_ms": 64, "p99_latency_ms": 151, "requests_per_window": 710 },
+    { "service": "notification", "window_start": "2024-01-15T10:05:00Z", "window_end": "2024-01-15T10:10:00Z", "error_rate": 0.002, "avg_latency_ms": 65, "p99_latency_ms": 150, "requests_per_window": 695 },
+    { "service": "notification", "window_start": "2024-01-15T10:10:00Z", "window_end": "2024-01-15T10:15:00Z", "error_rate": 0.003, "avg_latency_ms": 66, "p99_latency_ms": 153, "requests_per_window": 715 }
+  ]
+}
