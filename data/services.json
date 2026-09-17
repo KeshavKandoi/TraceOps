@@ -1,0 +1,85 @@
+{
+  "generated_at": "2024-01-15T10:15:00Z",
+  "services": [
+    {
+      "name": "payment",
+      "status": "degraded",
+      "description": "Handles payment authorization and capture for checkout flow",
+      "dependencies": ["payment-db", "user"],
+      "database": {
+        "name": "payment-db",
+        "status": "connection_pool_exhausted",
+        "max_connections": 50,
+        "active_connections": 50,
+        "queued_connections": 37,
+        "last_healthy_at": "2024-01-15T09:58:00Z"
+      },
+      "last_updated": "2024-01-15T10:15:00Z",
+      "on_call": "team-payments"
+    },
+    {
+      "name": "user",
+      "status": "healthy",
+      "description": "Handles authentication, sessions, and user profile data",
+      "dependencies": ["user-db"],
+      "database": {
+        "name": "user-db",
+        "status": "healthy",
+        "max_connections": 50,
+        "active_connections": 12,
+        "queued_connections": 0,
+        "last_healthy_at": "2024-01-15T10:15:00Z"
+      },
+      "last_updated": "2024-01-15T10:15:00Z",
+      "on_call": "team-identity"
+    },
+    {
+      "name": "order",
+      "status": "healthy",
+      "description": "Manages order creation, status, and fulfillment handoff",
+      "dependencies": ["order-db", "payment", "user"],
+      "database": {
+        "name": "order-db",
+        "status": "healthy",
+        "max_connections": 50,
+        "active_connections": 9,
+        "queued_connections": 0,
+        "last_healthy_at": "2024-01-15T10:15:00Z"
+      },
+      "last_updated": "2024-01-15T10:15:00Z",
+      "on_call": "team-commerce"
+    },
+    {
+      "name": "inventory",
+      "status": "healthy",
+      "description": "Tracks warehouse stock levels and reservations",
+      "dependencies": ["inventory-db"],
+      "database": {
+        "name": "inventory-db",
+        "status": "healthy",
+        "max_connections": 30,
+        "active_connections": 6,
+        "queued_connections": 0,
+        "last_healthy_at": "2024-01-15T10:15:00Z"
+      },
+      "last_updated": "2024-01-15T10:15:00Z",
+      "on_call": "team-commerce"
+    },
+    {
+      "name": "notification",
+      "status": "healthy",
+      "description": "Sends email and push notifications to customers",
+      "dependencies": ["notification-db"],
+      "database": {
+        "name": "notification-db",
+        "status": "healthy",
+        "max_connections": 20,
+        "active_connections": 3,
+        "queued_connections": 0,
+        "last_healthy_at": "2024-01-15T10:15:00Z"
+      },
+      "last_updated": "2024-01-15T10:15:00Z",
+      "on_call": "team-growth"
+    }
+  ]
+}
