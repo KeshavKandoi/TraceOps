@@ -53,6 +53,10 @@ export function listTools(): Array<{ name: string; description: string }> {
   }));
 }
 
+export function listToolSchemas(): AnyToolDefinition[] {
+  return [...registeredTools];
+}
+
 export function getTool(name: string): ToolResult<AnyToolDefinition> {
   const tool = toolMap.get(name);
 

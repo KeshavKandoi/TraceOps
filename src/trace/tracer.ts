@@ -2,11 +2,11 @@ import type { AgentState, InvestigationResponse } from "../agent/state.js";
 import { addTraceEvent } from "../agent/state.js";
 import type { ModelResponse } from "../model/model.js";
 import type { ToolResult } from "../tools/types.js";
-import { TraceEventType, summarizeForTrace } from "./events.js";
+import { TraceEventType, type TraceEventTypeValue, summarizeForTrace } from "./events.js";
 
 function safeTrace(
   state: AgentState,
-  type: string,
+  type: TraceEventTypeValue,
   details: Record<string, unknown> | undefined,
 ): AgentState {
   try {
