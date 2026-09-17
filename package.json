@@ -1,5 +1,5 @@
 {
-  "name": "observable-agent",
+  "name": "traceops",
   "version": "1.0.0",
   "description": "Caygnus Product Engineer Challenge - Problem 4: Observable Agent Loop",
   "main": "dist/index.js",
