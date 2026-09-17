@@ -6,7 +6,8 @@ import {
 } from "@google/genai";
 import type { AgentState } from "../agent/state.js";
 import type { Model, ModelResponse } from "./model.js";
-import { listTools } from "../tools/registry.js";
+import { listTools, listToolSchemas } from "../tools/registry.js";
+import { toFunctionDeclarations } from "./gemini-schema-adapter.js";
 
 export class GeminiModelError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -40,49 +41,7 @@ export interface GeminiApiClient {
 const FINAL_RESPONSE_FUNCTION_NAME = "submit_final_response";
 const DEFAULT_MODEL_NAME = "gemini-3.6-flash";
 
-const TOOL_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
-  {
-    name: "search_logs",
-    description: "Search service logs, optionally filtered by log level.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        service: { type: Type.STRING, description: "The service name to search logs for." },
-        level: {
-          type: Type.STRING,
-          description: "Optional log level filter.",
-          enum: ["info", "warn", "error"],
-        },
-      },
-      required: ["service"],
-    },
-  },
-  {
-    name: "get_metrics",
-    description:
-      "Get baseline and windowed metrics for a service, optionally filtered by a time range.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        service: { type: Type.STRING, description: "The service name to fetch metrics for." },
-        from: { type: Type.STRING, description: "Optional ISO 8601 datetime start of the window." },
-        to: { type: Type.STRING, description: "Optional ISO 8601 datetime end of the window." },
-      },
-      required: ["service"],
-    },
-  },
-  {
-    name: "get_service_status",
-    description: "Get the current health, dependency, and database status for a service.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        service: { type: Type.STRING, description: "The service name to check status for." },
-      },
-      required: ["service"],
-    },
-  },
-];
+const TOOL_FUNCTION_DECLARATIONS: FunctionDeclaration[] = toFunctionDeclarations(listToolSchemas());
 
 const FINAL_RESPONSE_FUNCTION_DECLARATION: FunctionDeclaration = {
   name: FINAL_RESPONSE_FUNCTION_NAME,
@@ -127,7 +86,7 @@ function buildPrompt(state: AgentState): string {
   return sections.join("\n\n");
 }
 
-function toModelResponse(result: GeminiGenerateContentResult): ModelResponse {
+function toModelResponse(result: GeminiGenerateContentResult, objective: string): ModelResponse {
   const call = result.functionCalls?.[0];
 
   if (!call || typeof call.name !== "string") {
@@ -147,7 +106,7 @@ function toModelResponse(result: GeminiGenerateContentResult): ModelResponse {
     return {
       type: "final",
       response: {
-        objective: "",
+        objective,
         rootCause,
         summary,
         evidenceIds: evidenceIds.filter((id): id is string => typeof id === "string"),
@@ -220,7 +179,7 @@ export class GeminiModel implements Model {
       throw new GeminiModelError("Gemini API request failed.", { cause: error });
     }
 
-    return toModelResponse(result);
+    return toModelResponse(result, state.objective);
   }
 }
 
