@@ -1,0 +1,46 @@
+{
+  "generated_at": "2024-01-15T10:15:00Z",
+  "logs": [
+    { "id": "log-0001", "timestamp": "2024-01-15T09:45:12Z", "service": "payment", "level": "info", "message": "Processed charge for order ord-88123 in 112ms" },
+    { "id": "log-0002", "timestamp": "2024-01-15T09:48:03Z", "service": "payment", "level": "info", "message": "Processed refund for order ord-88090 in 98ms" },
+    { "id": "log-0003", "timestamp": "2024-01-15T09:52:41Z", "service": "payment", "level": "info", "message": "Processed charge for order ord-88140 in 121ms" },
+    { "id": "log-0004", "timestamp": "2024-01-15T09:56:19Z", "service": "payment", "level": "warn", "message": "Slow query on payment-db (340ms) fetching card_tokens for user usr-4471" },
+    { "id": "log-0005", "timestamp": "2024-01-15T09:58:02Z", "service": "payment", "level": "info", "message": "Processed charge for order ord-88151 in 130ms" },
+
+    { "id": "log-0006", "timestamp": "2024-01-15T10:00:05Z", "service": "payment", "level": "error", "message": "Database connection to payment-db timed out after 2000ms" },
+    { "id": "log-0007", "timestamp": "2024-01-15T10:00:22Z", "service": "payment", "level": "error", "message": "Database connection to payment-db timed out after 2000ms" },
+    { "id": "log-0008", "timestamp": "2024-01-15T10:00:47Z", "service": "payment", "level": "warn", "message": "Connection pool utilization at 88% (44/50 connections active)" },
+    { "id": "log-0009", "timestamp": "2024-01-15T10:01:15Z", "service": "payment", "level": "error", "message": "Failed to acquire connection from payment-db pool: pool exhausted" },
+    { "id": "log-0010", "timestamp": "2024-01-15T10:01:52Z", "service": "payment", "level": "error", "message": "Charge attempt for order ord-88162 failed: database connection unavailable" },
+    { "id": "log-0011", "timestamp": "2024-01-15T10:02:30Z", "service": "payment", "level": "error", "message": "Database connection to payment-db timed out after 2000ms" },
+    { "id": "log-0012", "timestamp": "2024-01-15T10:03:01Z", "service": "payment", "level": "warn", "message": "Connection pool utilization at 96% (48/50 connections active)" },
+    { "id": "log-0013", "timestamp": "2024-01-15T10:03:44Z", "service": "payment", "level": "error", "message": "Charge attempt for order ord-88170 failed: database connection unavailable" },
+    { "id": "log-0014", "timestamp": "2024-01-15T10:04:18Z", "service": "payment", "level": "error", "message": "Database connection to payment-db timed out after 2000ms" },
+    { "id": "log-0015", "timestamp": "2024-01-15T10:05:02Z", "service": "payment", "level": "error", "message": "Connection pool exhausted: 50/50 connections active, 12 requests queued" },
+    { "id": "log-0016", "timestamp": "2024-01-15T10:05:40Z", "service": "payment", "level": "error", "message": "Charge attempt for order ord-88184 failed: database connection unavailable" },
+    { "id": "log-0017", "timestamp": "2024-01-15T10:06:12Z", "service": "payment", "level": "error", "message": "Refund attempt for order ord-88055 failed: database connection unavailable" },
+    { "id": "log-0018", "timestamp": "2024-01-15T10:06:58Z", "service": "payment", "level": "error", "message": "Database connection to payment-db timed out after 2000ms" },
+    { "id": "log-0019", "timestamp": "2024-01-15T10:07:35Z", "service": "payment", "level": "error", "message": "Connection pool exhausted: 50/50 connections active, 25 requests queued" },
+    { "id": "log-0020", "timestamp": "2024-01-15T10:08:20Z", "service": "payment", "level": "error", "message": "Charge attempt for order ord-88201 failed: database connection unavailable" },
+    { "id": "log-0021", "timestamp": "2024-01-15T10:09:05Z", "service": "payment", "level": "error", "message": "Database health check failed: payment-db unreachable on port 5432" },
+    { "id": "log-0022", "timestamp": "2024-01-15T10:10:11Z", "service": "payment", "level": "error", "message": "Connection pool exhausted: 50/50 connections active, 37 requests queued" },
+    { "id": "log-0023", "timestamp": "2024-01-15T10:11:47Z", "service": "payment", "level": "error", "message": "Charge attempt for order ord-88219 failed: database connection unavailable" },
+    { "id": "log-0024", "timestamp": "2024-01-15T10:13:30Z", "service": "payment", "level": "error", "message": "Database health check failed: payment-db unreachable on port 5432" },
+
+    { "id": "log-0025", "timestamp": "2024-01-15T09:50:00Z", "service": "order", "level": "info", "message": "Created order ord-88135 for user usr-2203" },
+    { "id": "log-0026", "timestamp": "2024-01-15T09:59:10Z", "service": "order", "level": "info", "message": "Created order ord-88160 for user usr-5521" },
+    { "id": "log-0027", "timestamp": "2024-01-15T10:02:15Z", "service": "order", "level": "warn", "message": "Payment authorization for order ord-88162 timed out, retrying" },
+    { "id": "log-0028", "timestamp": "2024-01-15T10:05:33Z", "service": "order", "level": "error", "message": "Order ord-88184 stuck in pending_payment: downstream payment service error" },
+    { "id": "log-0029", "timestamp": "2024-01-15T10:09:48Z", "service": "order", "level": "error", "message": "Order ord-88201 stuck in pending_payment: downstream payment service error" },
+
+    { "id": "log-0030", "timestamp": "2024-01-15T09:47:20Z", "service": "user", "level": "info", "message": "User usr-4471 logged in successfully" },
+    { "id": "log-0031", "timestamp": "2024-01-15T09:59:55Z", "service": "user", "level": "info", "message": "User usr-5521 session refreshed" },
+    { "id": "log-0032", "timestamp": "2024-01-15T10:08:02Z", "service": "user", "level": "info", "message": "User usr-6610 profile updated" },
+
+    { "id": "log-0033", "timestamp": "2024-01-15T09:51:00Z", "service": "inventory", "level": "info", "message": "Reserved 2 units of sku-1042 for order ord-88135" },
+    { "id": "log-0034", "timestamp": "2024-01-15T10:06:40Z", "service": "inventory", "level": "info", "message": "Restocked sku-2091 with 150 units" },
+
+    { "id": "log-0035", "timestamp": "2024-01-15T09:53:15Z", "service": "notification", "level": "info", "message": "Sent order confirmation email for ord-88123" },
+    { "id": "log-0036", "timestamp": "2024-01-15T10:04:50Z", "service": "notification", "level": "info", "message": "Sent shipping update push notification for ord-88055" }
+  ]
+}
