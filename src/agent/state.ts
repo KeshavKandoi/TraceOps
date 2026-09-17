@@ -1,4 +1,5 @@
 import type { ToolResult } from "../tools/types.js";
+import type { TraceEventTypeValue } from "../trace/events.js";
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
@@ -31,7 +32,7 @@ export interface AgentConclusion {
 export interface TraceEvent {
   id: string;
   timestamp: string;
-  type: string;
+  type: TraceEventTypeValue;
   details?: Record<string, unknown>;
 }
 
@@ -153,7 +154,7 @@ export function setFinalResponse(state: AgentState, response: InvestigationRespo
 }
 
 export interface AddTraceEventInput {
-  type: string;
+  type: TraceEventTypeValue;
   details?: Record<string, unknown>;
 }
 
