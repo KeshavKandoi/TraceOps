@@ -1,90 +1,90 @@
 # Caygnus Product Engineer Challenge - Submission
 
-Problem selected: Problem 4 - Observable Agent Loop
-Project name: TraceOps
-Repository: KeshavKandoi/TraceOps
-Local directory: observable-agent (kept unchanged; see README "Package name vs directory name")
+Problem selected: Problem 4 - Observable Agent Loop  
+Project name: TraceOps  
+Repository: KeshavKandoi/TraceOps  
+Local directory: `observable-agent`
 
-## Solution summary
+## Summary
 
-TraceOps is a LangGraph-orchestrated investigation agent that repeatedly decides whether to call a deterministic evidence-gathering tool or produce a final root-cause conclusion, backed by a Zod-validated tool execution boundary, an immutable typed AgentState, a hard execution-step limit, and a secret-safe operational trace of the entire investigation. It supports two interchangeable Model implementations - a deterministic FakeModel for testing and a real GeminiModel for live use - behind one shared interface, so the orchestration code is identical either way.
+TraceOps is a LangGraph-orchestrated investigation agent with a Node `http` API and React/Vite TypeScript frontend. The backend preserves the requested loop:
+
+```text
+LangGraph -> Model -> Tool Registry -> Zod validation -> Tool -> Evidence -> AgentState -> Trace -> Final Response
+```
+
+The UI calls the API, lets the reviewer choose deterministic scenarios, and displays execution status, trace events, tool evidence, and final conclusions as separate surfaces.
 
 ## Architecture
 
-See README.md, sections "Architecture" and "Project structure". In short: Model.decide(state) is called by the LangGraph model node, which is Zod-validated, and then either a tool node (executeTool(), Zod-validated tool input) or a final response follows; the loop continues or reaches END. Every transition is recorded by the tracer.
+- `AgentState` is immutable and serializable.
+- `Model.decide(state)` returns a `tool_call` or `final` response.
+- Raw model responses are Zod-validated before use.
+- Tool calls go through `executeTool()`, which validates arguments against the canonical Zod schema for the registered tool.
+- Gemini function declarations and frontend tool metadata are derived from the same registry/schemas so metadata cannot drift.
+- Tool results, tool failures, model errors, malformed responses, execution limits, and final responses are traced as structured operational events.
+- Final responses are rejected if they reference evidence IDs that were not actually collected.
 
-## Model and tool interfaces
+## API And Frontend
 
-Model.decide(state: AgentState): Promise<ModelResponse> - ModelResponse is a discriminated union of tool_call (toolName, arguments) and final (response: InvestigationResponse).
+API endpoints:
 
-ToolDefinition<Input, Output> - name, description, inputSchema (a Zod schema), execute(input) returning a ToolResult, registered centrally in src/tools/registry.ts.
+- `GET /api/health`
+- `GET /api/tools`
+- `GET /api/scenarios`
+- `POST /api/investigate`
 
-Gemini's FunctionDeclarations are derived from the same registry/schemas via src/model/gemini-schema-adapter.ts, so tool metadata cannot drift between what Gemini is told and what executeTool() actually accepts.
+The API validates malformed JSON, unknown routes, wrong methods, invalid objectives, invalid `maxSteps`, invalid scenarios, and missing Gemini credentials. `GEMINI_API_KEY` is read only on the server.
 
-## Validation approach
+The frontend includes loading, error, empty, scenario-selection, objective-input, max-step, trace, evidence, tool registry, and conclusion states. Evidence chips in the conclusion jump to evidence cards. The UI shows operational trace and observed evidence, not hidden chain-of-thought.
 
-Two independent Zod boundaries (detailed in README): (1) tool input validation inside executeTool(), applied to every tool call regardless of which Model produced it; (2) a z.discriminatedUnion boundary in graph.ts that validates the raw shape returned by Model.decide() before it is ever treated as a trusted ModelResponse.
+## Deterministic Scenarios
 
-## State management
+- `success`: three successful payment evidence entries; final response cites `evidence-1`, `evidence-2`, `evidence-3`.
+- `tool_failure_recovery`: invalid metrics call produces `tool_error`; loop recovers with status/log tools; final response cites only `evidence-2`, `evidence-3`.
+- `step_limit`: known `order` service, two successful evidence entries, then `step_limit_reached` with no final response.
 
-AgentState is an immutable, JSON-serializable record (objective, messages, evidence, conclusions, stepCount, trace, finalResponse). All transitions go through pure helper functions in src/agent/state.ts that return a new state object.
+## Verification Actually Run
 
-## Execution limits
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 16 test files, 88 tests
+- `npm run build`: PASS
+- `cd frontend && npm run build`: PASS
+- `npm run dev`: PASS after elevated execution because sandbox blocked `tsx` IPC; result was `final_response`, 4 steps, 3 evidence entries, 12 trace events
+- `PORT=8787 npm run start:api`: attempted; port 8787 was already in use
+- `PORT=8797 npm run start:api`: PASS, compiled API served locally
+- `curl http://localhost:8797/api/health`: PASS, `200 {"ok":true}`
+- `curl http://localhost:8797/api/tools`: PASS, returned registry-derived metadata for `search_logs`, `get_metrics`, `get_service_status`
+- `curl http://localhost:8797/api/scenarios`: PASS, returned the three deterministic scenarios
+- `curl -X POST /api/investigate` with invalid objective/maxSteps/scenario: PASS, `400 invalid_request` with structured issues
+- `curl -X POST /api/investigate` for `success`: PASS, `final_response`, 3 evidence entries, evidence IDs matched collected evidence
+- `curl -X POST /api/investigate` for `tool_failure_recovery`: PASS, one `tool_error`, final response cited `evidence-2` and `evidence-3`
+- `curl -X POST /api/investigate` for `step_limit`: PASS, 2 successful `order` evidence entries, final response `null`, `stopReason: step_limit_reached`
+- `npm run start:gemini -- "Investigate elevated payment errors"`: executed with configured credentials after elevated execution because sandbox blocked `tsx` IPC. Gemini selected the valid `payment` service and collected one evidence item, then the next Gemini request failed; graph stopped safely with `model_error`.
 
-runInvestigation(objective, { model, maxSteps }) halts with stopReason: step_limit_reached once the step count reaches maxSteps, traced as an execution_limit_reached event, before any further model/tool call.
+## Not Verified
 
-## Failure handling
+- Browser-to-API click-through was not performed because no browser automation tool was available in this session. The frontend production build and live API checks passed separately.
+- A complete Gemini final response was not observed; the live Gemini path was exercised and failed safely with `model_error` after one successful tool call.
 
-Tool failures, model-call failures, and malformed model responses are each handled distinctly and safely (never an unhandled crash), with a dedicated StopReason and trace event for each: model_error, malformed_response, step_limit_reached, final_response. Details in README.md, section "Failure handling".
+## Git / Artifact Check
 
-## Trace design
+`git ls-files .env node_modules dist .DS_Store frontend/node_modules frontend/dist frontend/.env` returned no tracked files. `.env`, API keys, `node_modules`, `dist`, `.DS_Store`, and generated/private artifacts are not tracked.
 
-src/trace/events.ts and src/trace/tracer.ts define eight event types (TraceEventTypeValue, now the compile-time type for TraceEvent.type) covering objective-set, model decisions, tool calls/results/errors, execution-limit termination, model errors, and final response. Tracer functions are wrapped so a formatting failure degrades to a minimal safe event instead of aborting the investigation.
+## AI Usage Disclosure
 
-## Secret-safe logging
+This project was prepared with AI pair-programming assistance. The final verification results above reflect commands actually run in this workspace during the hardening pass.
 
-redactSensitiveValues() recursively redacts by sensitive key name and by token-shaped string value before anything is written into a trace event; verified by a dedicated test asserting a fake API-key-shaped string never appears in serialized trace output. GEMINI_API_KEY is read only from the environment or an explicit override and is never logged or traced.
+## Final Checklist
 
-## Deterministic testing strategy
-
-All automated tests run against FakeModel (scripted, deterministic ModelResponse sequences) or an injected fake GeminiApiClient. No test performs a real network call or requires GEMINI_API_KEY; this is verified structurally (GeminiModel accepts a client override) and by inspection of every test file under tests/.
-
-## Remote execution portability
-
-The project has no local-machine-specific paths (data is loaded relative to the module via import.meta.url), no hardcoded secrets, and a single environment variable (GEMINI_API_KEY) gates the only network-dependent code path. npm install, npm run build, npm start (offline) or npm run start:gemini (with .env configured) should run identically on any machine with Node.js installed.
-
-## Known limitations and tradeoffs
-
-- get_metrics uses overlap-based, not strict-containment, time-window filtering (intentional; see README).
-- AnyToolDefinition uses any to type-erase the heterogeneous tool registry array; the actual execution path remains fully validated.
-- The dataset is synthetic and fictional with 2024 timestamps; it is not live or real incident data.
-- No frontend, database, or distributed tracing platform is included by design - out of scope for this challenge.
-
-## How to run
-
-See README.md, sections "Install dependencies", "Run the offline deterministic demo", "Run the real Gemini-backed investigation", "Run tests".
-
-## Test results
-
-npm run typecheck: PASS - no errors, strict mode clean.
-npm test: PASS - 13 test files, 72 tests, all passed.
-npm run build: PASS - compiled src/ into dist/ with no errors.
-npm run dev: PASS - offline FakeModel demo ran to stopReason final_response (3 steps, 2 evidence entries, 9 trace events).
-npm run start:gemini (manual): not run - no GEMINI_API_KEY available in this environment.
-
-## AI usage disclosure
-
-This project was built iteratively with Claude (Anthropic) as a pair-programming assistant: the author directed each phase via detailed prompts (project setup, tools and validation, AgentState, FakeModel, LangGraph orchestration, GeminiModel integration, tracing, and this final correctness and submission pass), and Claude generated the corresponding TypeScript implementation, tests, and documentation for the author to review, run, and verify locally. All verification (typecheck, test, build, dev, and any real Gemini run) was executed by the author on their own machine.
-
-## Final checklist
-
-[x] npm run typecheck passes with no errors
-[x] npm test passes, all suites green, no test requires network or API key
-[x] npm run build passes
-[x] npm run dev produces a complete offline final response
-[x] No .env, API key, node_modules, dist, or .DS_Store is tracked in git
-[ ] FILL IN AFTER VERIFICATION - Demo video URL: PLACEHOLDER
-[ ] FILL IN AFTER VERIFICATION - Resume link: PLACEHOLDER
-[ ] FILL IN AFTER VERIFICATION - Submission form or other required links: PLACEHOLDER
-
-Submission-ready status: to be confirmed only after the verification sequence is actually run and all boxes above are checked truthfully.
+[x] Backend typecheck passes  
+[x] Backend build passes  
+[x] Frontend build passes  
+[x] Full offline test suite passes, 88 tests  
+[x] Offline deterministic demo passes  
+[x] API endpoints and deterministic scenarios verified over HTTP  
+[x] Gemini path exercised without printing credentials; failed safely after one evidence item  
+[x] No private/generated artifacts tracked  
+[ ] Demo video URL: placeholder for submitter  
+[ ] Resume link: placeholder for submitter  
+[ ] Submission form or other required links: placeholder for submitter
