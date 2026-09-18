@@ -4,7 +4,7 @@ import { z } from "zod";
 import { runInvestigation, type StopReason } from "./agent/graph.js";
 import type { AgentState } from "./agent/state.js";
 import { FakeModel } from "./model/fake-model.js";
-import { createGeminiModel } from "./model/gemini-model.js";
+import { createGeminiModel, GeminiModelError } from "./model/gemini-model.js";
 import { demoScenarios, getDemoScenario, type DemoScenarioId } from "./model/fake-scenarios.js";
 import { listToolMetadata } from "./tools/registry.js";
 
@@ -176,44 +176,60 @@ async function handleInvestigation(request: IncomingMessage, response: ServerRes
     return;
   }
 
-  sendJson(response, 200, await runApiInvestigation(parsed.data));
+  try {
+    sendJson(response, 200, await runApiInvestigation(parsed.data));
+  } catch (error) {
+    if (error instanceof GeminiModelError) {
+      sendError(response, 503, "model_unavailable", error.message);
+      return;
+    }
+    throw error;
+  }
+}
+
+export async function handleApiRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  try {
+    if (request.method === "OPTIONS") {
+      sendJson(response, 204, {});
+      return;
+    }
+
+    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+
+    if (request.method === "GET" && url.pathname === "/api/health") {
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/tools") {
+      sendJson(response, 200, { tools: listToolMetadata() });
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/scenarios") {
+      sendJson(response, 200, { scenarios: getScenarioSummaries() });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/investigate") {
+      await handleInvestigation(request, response);
+      return;
+    }
+
+    if (["/api/health", "/api/tools", "/api/scenarios", "/api/investigate"].includes(url.pathname)) {
+      sendError(response, 405, "method_not_allowed", "Method not allowed for this route.");
+      return;
+    }
+
+    sendError(response, 404, "not_found", "Route not found.");
+  } catch {
+    sendError(response, 500, "internal_error", "Unexpected server error.");
+  }
 }
 
 export function createApiServer(): http.Server {
   return http.createServer((request, response) => {
-    void (async () => {
-      if (request.method === "OPTIONS") {
-        sendJson(response, 204, {});
-        return;
-      }
-
-      const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
-
-      if (request.method === "GET" && url.pathname === "/api/health") {
-        sendJson(response, 200, { ok: true });
-        return;
-      }
-
-      if (request.method === "GET" && url.pathname === "/api/tools") {
-        sendJson(response, 200, { tools: listToolMetadata() });
-        return;
-      }
-
-      if (request.method === "GET" && url.pathname === "/api/scenarios") {
-        sendJson(response, 200, { scenarios: getScenarioSummaries() });
-        return;
-      }
-
-      if (request.method === "POST" && url.pathname === "/api/investigate") {
-        await handleInvestigation(request, response);
-        return;
-      }
-
-      sendError(response, 404, "not_found", "Route not found.");
-    })().catch((error) => {
-      const message = error instanceof Error ? error.message : "Unexpected server error.";
-      sendError(response, 500, "internal_error", message);
-    });
+    void handleApiRequest(request, response);
   });
 }
 
