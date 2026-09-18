@@ -3,6 +3,8 @@ import { StatusBadge } from "./StatusBadge";
 
 interface EvidenceCardProps {
   evidence: ToolEvidence;
+  supportsConclusion?: boolean;
+  highlighted?: boolean;
 }
 
 function summarizeResult(evidence: ToolEvidence): string {
@@ -20,7 +22,7 @@ function summarizeResult(evidence: ToolEvidence): string {
   return String(data);
 }
 
-export function EvidenceCard({ evidence }: EvidenceCardProps) {
+export function EvidenceCard({ evidence, supportsConclusion, highlighted }: EvidenceCardProps) {
   const time = new Date(evidence.collectedAt).toLocaleTimeString(undefined, {
     hour12: false,
     hour: "2-digit",
@@ -29,9 +31,13 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
   });
 
   return (
-    <article className="evidence-card">
+    <article
+      id={`evidence-${evidence.id}`}
+      className={`evidence-card${evidence.result.ok ? "" : " evidence-card-error"}${highlighted ? " evidence-card-highlighted" : ""}`}
+      tabIndex={-1}
+    >
       <div className="evidence-card-head">
-        <span className="evidence-tool-name">{evidence.toolName}</span>
+        <span className="evidence-tool-name mono">{evidence.toolName}</span>
         {evidence.result.ok ? (
           <StatusBadge label="Success" tone="success" />
         ) : (
@@ -39,7 +45,7 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
         )}
       </div>
       <div className="evidence-meta">
-        <span>{evidence.id}</span>
+        <span className="mono">{evidence.id}</span>
         <span>
           step {evidence.stepNumber} · {time}
         </span>
@@ -52,6 +58,14 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
         <div className="kv-label">{evidence.result.ok ? "Result summary" : "Error"}</div>
         <div className="kv-value">{summarizeResult(evidence)}</div>
       </div>
+      {supportsConclusion && (
+        <div className="evidence-supports">
+          <span className="badge badge-accent">
+            <span className="badge-dot" />
+            Cited in conclusion
+          </span>
+        </div>
+      )}
     </article>
   );
 }
