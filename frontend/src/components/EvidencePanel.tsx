@@ -5,9 +5,11 @@ import { IconLayers } from "../icons";
 
 interface EvidencePanelProps {
   evidence: ToolEvidence[];
+  supportingIds?: string[];
+  highlightedId?: string | null;
 }
 
-export function EvidencePanel({ evidence }: EvidencePanelProps) {
+export function EvidencePanel({ evidence, supportingIds, highlightedId }: EvidencePanelProps) {
   if (evidence.length === 0) {
     return (
       <EmptyState
@@ -21,7 +23,12 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
   return (
     <div className="card-grid">
       {evidence.map((entry) => (
-        <EvidenceCard key={entry.id} evidence={entry} />
+        <EvidenceCard
+          key={entry.id}
+          evidence={entry}
+          supportsConclusion={supportingIds?.includes(entry.id)}
+          highlighted={highlightedId === entry.id}
+        />
       ))}
     </div>
   );
