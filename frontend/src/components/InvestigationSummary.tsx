@@ -5,47 +5,43 @@ interface InvestigationSummaryProps {
   investigation: InvestigationState;
 }
 
+interface Metric {
+  label: string;
+  value: string;
+}
+
 export function InvestigationSummary({ investigation }: InvestigationSummaryProps) {
   const errorCount = investigation.evidence.filter((entry) => !entry.result.ok).length;
+
+  const metrics: Metric[] = [
+    { label: "Steps", value: `${investigation.stepCount} / ${investigation.maxSteps}` },
+    { label: "Evidence", value: String(investigation.evidence.length) },
+    { label: "Trace events", value: String(investigation.trace.length) },
+    { label: "Tool errors", value: String(errorCount) },
+    { label: "Conclusion", value: investigation.finalResponse ? "Ready" : "Pending" },
+  ];
 
   return (
     <header className="header">
       <div className="header-top">
-        <div>
+        <div className="header-objective-block">
           <div className="header-eyebrow">Active investigation</div>
-          <div className="header-objective">
-            {investigation.objective || "No objective set"}
-          </div>
+          <h1 className="header-objective">{investigation.objective || "No objective set"}</h1>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="header-badges" role="group" aria-label="Investigation status">
           {investigationStatusBadge(investigation.status)}
           {stopReasonBadge(investigation.stopReason)}
         </div>
       </div>
-      <div className="header-stats">
-        <div className="stat-card">
-          <div className="stat-label">Steps</div>
-          <div className="stat-value">
-            {investigation.stepCount} / {investigation.maxSteps}
+      <dl className="telemetry-row" aria-label="Investigation metrics">
+        {metrics.map((metric, index) => (
+          <div className="telemetry-item" key={metric.label}>
+            {index > 0 && <span className="telemetry-divider" aria-hidden="true" />}
+            <dt className="telemetry-label">{metric.label}</dt>
+            <dd className="telemetry-value">{metric.value}</dd>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Evidence</div>
-          <div className="stat-value">{investigation.evidence.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Trace events</div>
-          <div className="stat-value">{investigation.trace.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Tool errors</div>
-          <div className="stat-value">{errorCount}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Conclusion</div>
-          <div className="stat-value">{investigation.finalResponse ? "Ready" : "Pending"}</div>
-        </div>
-      </div>
+        ))}
+      </dl>
     </header>
   );
 }
