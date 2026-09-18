@@ -322,7 +322,7 @@ code,
 
 .run-panel {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(180px, 220px) 92px auto;
+  grid-template-columns: minmax(240px, 1fr) auto minmax(180px, 220px) 92px auto;
   gap: 10px;
   align-items: end;
   width: 100%;
@@ -352,6 +352,38 @@ code,
   border-radius: var(--radius-sm);
   padding: 0 10px;
   min-width: 0;
+}
+
+.model-switch {
+  display: inline-flex;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-0);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 3px;
+}
+
+.model-switch-option {
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.model-switch-option[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.model-switch-option:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
 }
 
 .run-button {
@@ -1097,6 +1129,14 @@ code,
 
   .run-field-steps {
     max-width: none;
+  }
+
+  .model-switch {
+    width: 100%;
+  }
+
+  .model-switch-option {
+    flex: 1;
   }
 
   .header {
