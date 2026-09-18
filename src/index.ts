@@ -1,26 +1,15 @@
 import { runInvestigation } from "./agent/graph.js";
 import { FakeModel } from "./model/fake-model.js";
+import { getDemoScenario } from "./model/fake-scenarios.js";
 
 async function main(): Promise<void> {
   console.log("TraceOps - Observable Agent (offline deterministic demo, no network required)");
 
-  const objective = "Investigate elevated payment errors";
-  const model = new FakeModel([
-    { type: "tool_call", toolName: "get_service_status", arguments: { service: "payment" } },
-    { type: "tool_call", toolName: "search_logs", arguments: { service: "payment", level: "error" } },
-    {
-      type: "final",
-      response: {
-        objective,
-        rootCause: "Synthetic demo root cause: payment-db connection pool exhaustion",
-        summary: "Deterministic offline demo using FakeModel; no GEMINI_API_KEY or network call is used.",
-        evidenceIds: [],
-        createdAt: new Date().toISOString(),
-      },
-    },
-  ]);
+  const scenario = getDemoScenario("success");
+  const objective = scenario.objective;
+  const model = new FakeModel(scenario.responses);
 
-  const result = await runInvestigation(objective, { model, maxSteps: 8 });
+  const result = await runInvestigation(objective, { model, maxSteps: scenario.maxSteps });
 
   console.log(`Stop reason: ${result.stopReason}`);
   console.log(`Steps taken: ${result.state.stepCount}`);
