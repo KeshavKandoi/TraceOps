@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sidebar, type NavSection } from "./components/Sidebar";
 import { InvestigationSummary } from "./components/InvestigationSummary";
 import { TraceTimeline } from "./components/TraceTimeline";
@@ -6,9 +6,20 @@ import { EvidencePanel } from "./components/EvidencePanel";
 import { ConclusionPanel } from "./components/ConclusionPanel";
 import { ToolRegistry } from "./components/ToolRegistry";
 import { EmptyState } from "./components/EmptyState";
-import { mockInvestigation, mockTools, emptyInvestigation } from "./data/mockInvestigation";
-import { IconSettings, IconInbox } from "./icons";
-import type { InvestigationState } from "./types";
+import { fetchScenarios, fetchTools, runInvestigationRequest, type DemoScenario } from "./api";
+import { IconSettings, IconInbox, IconTarget } from "./icons";
+import type { InvestigationState, ToolMeta } from "./types";
+
+const emptyInvestigation: InvestigationState = {
+  objective: "",
+  status: "idle",
+  stepCount: 0,
+  maxSteps: 8,
+  evidence: [],
+  trace: [],
+  finalResponse: null,
+  stopReason: null,
+};
 
 interface WorkspaceProps {
   investigation: InvestigationState;
@@ -66,16 +77,90 @@ function InvestigationView({ investigation, supportingIds, highlightedId, onSele
 
 export default function App() {
   const [section, setSection] = useState<NavSection>("investigation");
-  const [useMock, setUseMock] = useState(true);
+  const [investigation, setInvestigation] = useState<InvestigationState>(emptyInvestigation);
+  const [tools, setTools] = useState<ToolMeta[]>([]);
+  const [scenarios, setScenarios] = useState<DemoScenario[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<DemoScenario["id"]>("success");
+  const [objective, setObjective] = useState("");
+  const [maxSteps, setMaxSteps] = useState(8);
+  const [isRunning, setIsRunning] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const highlightTimeout = useRef<number | undefined>(undefined);
 
-  const investigation = useMemo(
-    () => (useMock ? mockInvestigation : emptyInvestigation),
-    [useMock],
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([fetchScenarios(), fetchTools()])
+      .then(([scenarioData, toolData]) => {
+        if (cancelled) return;
+        setScenarios(scenarioData);
+        setTools(toolData);
+        const firstScenario = scenarioData[0];
+        if (firstScenario) {
+          setSelectedScenario(firstScenario.id);
+          setObjective(firstScenario.objective);
+          setMaxSteps(firstScenario.maxSteps);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setErrorMessage(error instanceof Error ? error.message : "Unable to reach the TraceOps API.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedScenarioData = useMemo(
+    () => scenarios.find((scenario) => scenario.id === selectedScenario),
+    [scenarios, selectedScenario],
   );
 
   const supportingIds = investigation.finalResponse?.evidenceIds ?? [];
+
+  const handleScenarioChange = useCallback(
+    (scenarioId: DemoScenario["id"]) => {
+      const scenario = scenarios.find((entry) => entry.id === scenarioId);
+      setSelectedScenario(scenarioId);
+      if (scenario) {
+        setObjective(scenario.objective);
+        setMaxSteps(scenario.maxSteps);
+      }
+    },
+    [scenarios],
+  );
+
+  const handleRun = useCallback(async () => {
+    setIsRunning(true);
+    setErrorMessage(null);
+    setInvestigation({
+      ...emptyInvestigation,
+      objective,
+      maxSteps,
+      status: "running",
+    });
+
+    try {
+      const result = await runInvestigationRequest({
+        objective,
+        scenario: selectedScenario,
+        maxSteps,
+      });
+      setInvestigation(result);
+      setSection("investigation");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Investigation failed.");
+      setInvestigation((current) => ({
+        ...current,
+        status: "failed",
+      }));
+    } finally {
+      setIsRunning(false);
+    }
+  }, [maxSteps, objective, selectedScenario]);
 
   const handleSelectEvidence = useCallback((id: string) => {
     setSection("evidence");
@@ -93,10 +178,66 @@ export default function App() {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <Sidebar active={section} onSelect={setSection} />
+        <Sidebar active={section} onSelect={setSection} />
       <div className="main">
-        <InvestigationSummary investigation={investigation} />
+        <InvestigationSummary
+          investigation={investigation}
+          scenarioSelector={
+            <form
+              className="run-panel"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleRun();
+              }}
+            >
+              <label className="run-field run-field-objective">
+                <span>Objective</span>
+                <input
+                  value={objective}
+                  onChange={(event) => setObjective(event.target.value)}
+                  placeholder="Investigate elevated payment errors"
+                  disabled={isRunning}
+                />
+              </label>
+              <label className="run-field">
+                <span>Scenario</span>
+                <select
+                  value={selectedScenario}
+                  onChange={(event) => handleScenarioChange(event.target.value as DemoScenario["id"])}
+                  disabled={isRunning || scenarios.length === 0}
+                >
+                  {scenarios.map((scenario) => (
+                    <option key={scenario.id} value={scenario.id}>
+                      {scenario.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="run-field run-field-steps">
+                <span>Max steps</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={maxSteps}
+                  onChange={(event) => setMaxSteps(Number(event.target.value))}
+                  disabled={isRunning}
+                />
+              </label>
+              <button className="run-button" type="submit" disabled={isRunning || objective.trim().length === 0}>
+                <IconTarget aria-hidden="true" />
+                {isRunning ? "Running" : "Run"}
+              </button>
+            </form>
+          }
+        />
         <main className="content" id="main-content" tabIndex={-1}>
+          {errorMessage && (
+            <div className="error-banner" role="alert">
+              {errorMessage}
+            </div>
+          )}
+
           {section === "investigation" && (
             <InvestigationView
               investigation={investigation}
@@ -134,9 +275,9 @@ export default function App() {
             <section aria-labelledby="tools-heading">
               <h2 id="tools-heading" className="section-title">
                 Registered tools
-                <span className="section-title-count">{mockTools.length}</span>
+                <span className="section-title-count">{tools.length}</span>
               </h2>
-              <ToolRegistry tools={mockTools} />
+              <ToolRegistry tools={tools} />
             </section>
           )}
 
@@ -151,24 +292,17 @@ export default function App() {
                     <IconSettings />
                   </div>
                   <div className="settings-row-body">
-                    <div className="settings-row-title">Sample investigation data</div>
+                    <div className="settings-row-title">Deterministic offline scenarios</div>
                     <p className="settings-row-desc">
-                      Toggle the demo investigation used to preview the TraceOps workspace. Turning this off shows
-                      the empty state a fresh session starts from.
+                      The normal demo path calls the local TypeScript API and runs the real LangGraph agent with a
+                      FakeModel script. Gemini can be used from the server without exposing API keys to the browser.
                     </p>
+                    {selectedScenarioData && (
+                      <p className="settings-row-desc settings-row-desc-extra">
+                        Current scenario: {selectedScenarioData.label}, default budget {selectedScenarioData.maxSteps}.
+                      </p>
+                    )}
                   </div>
-                  <label className="switch" htmlFor="use-mock-toggle">
-                    <input
-                      id="use-mock-toggle"
-                      type="checkbox"
-                      checked={useMock}
-                      onChange={(event) => setUseMock(event.target.checked)}
-                    />
-                    <span className="switch-track" aria-hidden="true">
-                      <span className="switch-thumb" />
-                    </span>
-                    <span className="sr-only">Show sample investigation data</span>
-                  </label>
                 </div>
               </div>
             </section>
