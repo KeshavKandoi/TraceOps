@@ -28,13 +28,23 @@ export function ConclusionPanel({ finalResponse, onSelectEvidence }: ConclusionP
         <span className="conclusion-status-note">Derived from evidence below, not observed directly</span>
       </div>
 
-      <div className="conclusion-objective">
-        <IconTarget aria-hidden="true" />
-        <span>{finalResponse.objective}</span>
+      <div>
+        <div className="conclusion-observed-label">
+          <IconTarget aria-hidden="true" />
+          Investigation objective
+        </div>
+        <div className="conclusion-objective">
+          <span>{finalResponse.objective}</span>
+        </div>
       </div>
 
       <div>
-        <div className="header-eyebrow">Root cause</div>
+        <div className="conclusion-derivation" aria-hidden="true">
+          <span className="conclusion-derivation-line" />
+          <span className="header-eyebrow" style={{ marginBottom: 0 }}>
+            Root cause
+          </span>
+        </div>
         <div className="conclusion-root-cause">{finalResponse.rootCause}</div>
       </div>
 
