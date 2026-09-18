@@ -1,3 +1,4 @@
+import "dotenv/config";
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
