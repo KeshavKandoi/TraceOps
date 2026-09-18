@@ -83,7 +83,10 @@ export function TraceEventRow({ event, stepNumber, isLast }: TraceEventProps) {
         </div>
         {!isLast && <div className="timeline-line" />}
       </div>
-      <div className="timeline-card" style={{ borderLeft: `3px solid ${meta.tone}` }}>
+      <div
+        className={`timeline-card timeline-card--${event.type}${open ? " timeline-card--open" : ""}`}
+        style={{ borderLeft: `3px solid ${meta.tone}` }}
+      >
         <button
           type="button"
           className="timeline-card-head"
