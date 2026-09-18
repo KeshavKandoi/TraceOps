@@ -1,143 +1,137 @@
-# TraceOps — Observable Agent Loop
+# TraceOps - Observable Agent Loop
 
-TraceOps is a solution to Caygnus Product Engineer Challenge, Problem 4: Observable Agent Loop. It implements a small, strongly typed, LangGraph-orchestrated agent that investigates synthetic service incidents by calling deterministic tools, and it produces a complete, secret-safe operational trace of every decision the agent made along the way.
+TraceOps is a solution to the Caygnus Product Engineer Challenge, Problem 4: Observable Agent Loop. It implements a LangGraph-orchestrated incident investigation loop with a React/Vite TypeScript frontend and a Node `http` API.
 
-Data notice: all logs, metrics, and service-status data under data/ are synthetic, fictional incident data generated for this challenge. Timestamps (e.g. 2024-01-15) do not represent a real current incident and the project does not use, store, or connect to any real company data.
+All data under `data/` is synthetic challenge data. The 2024 timestamps are fictional incident timestamps and the project does not connect to real company systems.
 
-## Caygnus Problem 4 objective
+## What It Demonstrates
 
-Build an agent loop that:
-- Decides its next action (call a tool or produce a final answer) based on accumulated evidence.
-- Executes tools through a validated boundary rather than trusting raw model output.
-- Terminates safely under a step limit instead of looping forever.
-- Produces an operational trace of the investigation without leaking chain-of-thought, secrets, or raw model internals.
+- A model-driven loop that chooses between tool calls and a final answer.
+- A central tool registry with Zod schemas as the single source of truth.
+- Validated model responses, validated tool inputs, collected evidence, immutable agent state, ordered trace events, and final conclusions.
+- Safe termination on step limits, malformed model responses, model errors, and tool failures.
+- A frontend that separates operational trace, observed evidence, and agent conclusion without exposing chain-of-thought or secrets.
 
 ## Architecture
 
-Objective -> LangGraph model node -> Model.decide(state)
-  -> tool_call -> tool node -> executeTool() [Zod-validated] -> evidence -> back to model
-  -> final -> InvestigationResponse -> END
+```text
+React/Vite UI -> Node http API -> LangGraph model node -> Model.decide(state)
+  -> tool_call -> Tool Registry -> Zod validation -> Tool -> Evidence -> AgentState -> Trace -> model node
+  -> final -> evidence ID validation -> Final Response -> Trace -> END
+```
 
-Every transition is recorded as a TraceEvent. Evidence (what tools returned) and conclusions (the model's final answer) are kept in separate arrays on AgentState.
+The same graph runs with either `FakeModel` for deterministic offline demos/tests or `GeminiModel` for a live Gemini-backed investigation.
 
-## Project structure
+## Project Structure
 
-src/agent/state.ts - AgentState, immutable state transition helpers, TraceEvent shape
-src/agent/graph.ts - LangGraph StateGraph wiring: model node, tool node, routing, step limit, Zod response validation
-src/model/model.ts - Model interface + ModelResponse union (tool_call | final)
-src/model/fake-model.ts - Deterministic scripted model for tests
-src/model/gemini-model.ts - Real Gemini-backed Model implementation
-src/model/gemini-schema-adapter.ts - Converts canonical Zod tool schemas into Gemini FunctionDeclarations
-src/tools/schemas.ts - Canonical Zod input schemas (single source of truth, incl. field descriptions)
-src/tools/tool.ts - ToolDefinition interface
-src/tools/registry.ts - Registered tools, executeTool() validation boundary, listTools()/listToolSchemas()
-src/tools/search-logs.ts, get-metrics.ts, get-service-status.ts, data-loader.ts - tool implementations and data access
-src/trace/events.ts - TraceEventType constants, redaction + truncation helpers
-src/trace/tracer.ts - One tracing function per event type, integrated into graph.ts
-src/index.ts - Offline deterministic demo entry point (npm run dev)
-src/run-gemini.ts - Real Gemini-backed CLI entry point (npm run start:gemini)
-data/ - Synthetic logs, metrics, service-status, knowledge-base JSON
-tests/ - Vitest test suites mirroring src/
+- `src/agent/graph.ts` - LangGraph loop, step-limit routing, model-response validation, evidence-ID validation.
+- `src/agent/state.ts` - immutable `AgentState`, messages, evidence, trace, final response helpers.
+- `src/model/fake-model.ts` and `src/model/fake-scenarios.ts` - deterministic demo/test model paths.
+- `src/model/gemini-model.ts` - Gemini model adapter; API key stays server-side.
+- `src/model/gemini-schema-adapter.ts` - derives Gemini function declarations from registered Zod schemas.
+- `src/tools/registry.ts`, `src/tools/schemas.ts`, `src/tools/metadata.ts` - canonical tool registry, validation boundary, frontend-safe metadata.
+- `src/trace/events.ts`, `src/trace/tracer.ts` - operational trace events, redaction, truncation.
+- `src/api.ts` - Node `http` API for health, tools, scenarios, and investigations.
+- `frontend/` - React/Vite TypeScript UI consuming the API.
+- `tests/` - Vitest coverage for graph behavior, tools, trace safety, model adapters, scenarios, and API handling.
 
-## Model, FakeModel, GeminiModel separation
+## API
 
-Model is a single-method interface: decide(state: AgentState): Promise<ModelResponse>. ModelResponse is a discriminated union (tool_call | final) shared by every implementation.
+Default API port: `8787`.
 
-FakeModel returns a pre-scripted sequence of ModelResponse values, one per call, and throws a controlled FakeModelExhaustedError if asked for more than were scripted. It performs no reasoning. All automated tests use this - no test requires network access or an API key.
+- `GET /api/health` -> `{ "ok": true }`
+- `GET /api/tools` -> registered tool metadata derived from the registry.
+- `GET /api/scenarios` -> deterministic demo scenario summaries.
+- `POST /api/investigate`
 
-GeminiModel wraps the real @google/genai SDK, builds a prompt from AgentState, asks Gemini to call one function, and translates the function call back into the same ModelResponse shape. graph.ts never knows which implementation it is talking to.
+Example request:
 
-## Canonical tool metadata (single source of truth)
+```json
+{
+  "objective": "Investigate elevated payment errors",
+  "scenario": "success",
+  "maxSteps": 8,
+  "model": "fake"
+}
+```
 
-src/tools/schemas.ts defines each tool's Zod input schema, including a describe() on every field. src/tools/registry.ts is the source of truth for tool names, descriptions, and schemas (listToolSchemas()). src/model/gemini-schema-adapter.ts converts those same Zod schemas into Gemini FunctionDeclaration objects, so tool metadata can never drift between the registry and what Gemini is told is available. Gemini can only ever request a tool call - executeTool() in registry.ts still performs the actual Zod validation and execution; Gemini's declarations do not bypass that boundary.
+`model` defaults to `fake`. `gemini` is accepted only by the server and reads `GEMINI_API_KEY` from server-side environment. The browser never receives the key.
 
-## LangGraph control loop
+Validation behavior:
 
-buildAgentGraph() compiles a two-node StateGraph:
-- model node: calls Model.decide(), validates the raw response against a Zod schema (see below), traces the decision, and either sets pendingToolCall or the final response.
-- tool node: executes the pending tool call through executeTool(), records evidence, and traces the result/error.
-- Routing returns to the model node after every tool call, and ends when a final response, a step-limit, a malformed response, or a model error is reached.
+- Malformed JSON: `400 invalid_json`
+- Invalid objective, `maxSteps`, model, or scenario: `400 invalid_request`
+- Unsupported method on a known route: `405 method_not_allowed`
+- Unknown route: `404 not_found`
+- Missing/unavailable Gemini path: `503 model_unavailable`
+- Unexpected server failure: `500 internal_error` with a generic message
 
-## Zod validation boundary
+## Deterministic Scenarios
 
-There are two independent Zod boundaries:
-1. Tool input validation (registry.ts -> executeTool()): every tool call's arguments are parsed against that tool's canonical schema before execution, regardless of which Model produced them.
-2. Model-response shape validation (graph.ts -> ModelResponseSchema, a z.discriminatedUnion): the raw value returned by Model.decide() is validated before it is trusted as a ModelResponse at all - a tool_call with a non-string toolName, non-object arguments, or an invalid final-response shape is rejected safely into the existing malformed_response stop reason rather than crashing or being cast unsafely.
+- `success`: payment-service incident, three successful evidence entries, final response cites `evidence-1`, `evidence-2`, and `evidence-3`.
+- `tool_failure_recovery`: starts with an invalid metrics timestamp, records a `tool_error`, continues with status/log tools, and final response cites only recovered successful evidence (`evidence-2`, `evidence-3`).
+- `step_limit`: investigates the known `order` service with a two-step budget, collects two successful evidence entries, then stops with `step_limit_reached` and no final response.
 
-## AgentState
+## Commands
 
-AgentState is an immutable, serializable record: objective, messages (transcript), evidence (tool results, tagged with the step they were collected at), conclusions, stepCount, trace, and finalResponse. Every state-transition helper (addMessage, addEvidence, incrementStep, setFinalResponse, addTraceEvent) returns a new state object rather than mutating in place.
+Install backend dependencies:
 
-## Execution limits
+```bash
+npm install
+```
 
-runInvestigation(objective, { model, maxSteps }) stops the loop with stopReason: step_limit_reached once stepCount >= maxSteps, before another model or tool call is made. This is exercised by dedicated tests and traced as an execution_limit_reached event.
+Run backend checks:
 
-## Operational tracing
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run dev
+```
 
-src/trace/events.ts defines the ordered event vocabulary: objective_set, model_decision, tool_call, tool_result, tool_error, execution_limit_reached, model_error, final_response (TraceEventTypeValue, the compile-time source of truth for TraceEvent.type). Each event carries only structured, operational information - a decided tool name and validated arguments, a concise result summary, an error message - never raw model chain-of-thought and never large raw payloads (anything over ~500 serialized characters is truncated to a truncated/preview shape). Tracing is wired directly into graph.ts's model and tool nodes and does not alter control flow: a formatting failure inside a tracer function is caught and degrades to a minimal unavailable event rather than failing the investigation.
+Run the API:
 
-## Secret-safe logging
+```bash
+npm run api
+# or after build:
+npm run start:api
+```
 
-redactSensitiveValues() in src/trace/events.ts recursively blanks any object key matching key, secret, token, password, credential, or authorization (case-insensitive), and independently blanks any raw string value that looks like a long mixed-case/alphanumeric token, even under an innocuous key name. Every value written into a trace event passes through this before serialization. GEMINI_API_KEY is only ever read from process.env or an explicit override and is never logged, traced, or printed - run-gemini.ts reports only a configuration error message on a missing key, never the key itself.
+Run the Gemini CLI path:
 
-## Failure handling
+```bash
+cp .env.example .env
+# set GEMINI_API_KEY in .env
+npm run start:gemini -- "Investigate elevated payment errors"
+```
 
-- Tool failure (unknown service, invalid arguments, unknown tool name): executeTool() returns ok:false with an error; the graph records it as evidence and a tool_error trace event, and continues the loop.
-- Model error (the Model implementation throws, e.g. a network failure): caught in the model node, recorded as a system message and a model_error trace event, and the investigation stops with stopReason: model_error.
-- Malformed model response: rejected by the Zod boundary above, stops with stopReason: malformed_response.
-- Step limit reached: stops with stopReason: step_limit_reached before further model/tool calls.
+Run the frontend:
 
-## get_metrics time-window semantics
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+```
 
-get_metrics uses overlap-based filtering, not strict containment: a metrics window is included if it overlaps the from/to range at all - i.e. window_end is after from and window_start is before to - rather than requiring the whole window to fall inside the requested range. This is intentional: incident windows rarely align exactly with pre-aggregated metric buckets, so overlap filtering avoids silently dropping the bucket that actually contains the moment of interest. This behavior is unchanged from earlier phases and is covered by tests/tools/get-metrics.test.ts.
+During frontend development, Vite proxies `/api` to `http://localhost:8787`. For a separately hosted API, set `VITE_TRACEOPS_API_URL`.
 
-## Package name vs directory name
+## Current Verification
 
-The npm package name is traceops (matching the project's name), but the local directory remains observable-agent intentionally, per the challenge requirements, to avoid breaking any existing local tooling, scripts, or references to the directory path.
+Last verification in this workspace:
 
-## Install dependencies
+- `npm run typecheck`: PASS
+- `npm test`: PASS, 16 test files, 88 tests
+- `cd frontend && npm run build`: PASS
+- `npm run build`: PASS
+- `npm run dev`: PASS, offline demo reached `final_response` with 4 steps, 3 evidence entries, 12 trace events
+- Compiled API on alternate local port `8797`: PASS for `/api/health`, `/api/tools`, `/api/scenarios`, invalid request validation, `success`, `tool_failure_recovery`, and `step_limit`
+- `npm run start:gemini -- "Investigate elevated payment errors"`: executed with configured credentials; Gemini selected the valid `payment` service and collected one evidence item, then the next Gemini request failed and the graph stopped safely with `model_error`
+- Browser-to-API UI flow: not performed in this session because no browser automation tool was available; frontend production build and live API checks passed separately
 
-    npm install
+## Safety Notes
 
-## Run the offline deterministic demo (no API key required)
-
-    npm run dev
-
-This runs a scripted FakeModel investigation end-to-end through the real LangGraph loop and prints the stop reason, evidence count, trace event count, and final response.
-
-## Run the real Gemini-backed investigation
-
-1. Copy .env.example to .env and set GEMINI_API_KEY:
-
-       cp .env.example .env
-
-2. Run:
-
-       npm run start:gemini -- "Investigate elevated payment errors"
-
-If GEMINI_API_KEY is missing, this fails with a controlled configuration error and makes no network call. .env is git-ignored; only .env.example (containing just the variable name) is committed.
-
-## Run tests
-
-    npm test
-
-All tests use FakeModel or an injected fake GeminiApiClient - no test makes a real network call or requires GEMINI_API_KEY.
-
-## Other commands
-
-    npm run typecheck   - tsc --noEmit, strict mode
-    npm run build       - compiles src/ into dist/
-    npm run start       - runs the compiled dist/index.js demo
-
-## Design tradeoffs
-
-- Overlap-based get_metrics filtering (see above) favors not missing relevant windows over strict range containment.
-- AnyToolDefinition = ToolDefinition<any, any> in src/tools/tool.ts uses any deliberately to allow a single heterogeneous array of tools with different input/output types in the registry; the actual execution boundary (executeTool) is fully type- and Zod-safe regardless.
-- Two-node LangGraph loop (model/tool) was chosen over a more granular multi-node graph for clarity, since the challenge's core requirement is a clean decide -> act -> observe loop rather than a complex branching workflow.
-- No frontend, database, or distributed tracing platform was added; the challenge asks for a correct, testable, in-process operational trace, not production observability infrastructure.
-
-## Security notes
-
-- GEMINI_API_KEY must never be committed. .env is git-ignored; only .env.example (with an empty value) is tracked.
-- No trace event, log line, or error message ever includes the API key or another secret-shaped value - see Secret-safe logging above.
-- .DS_Store and other OS/editor artifacts are git-ignored and are not tracked in this repository.
+- `.env`, API keys, `node_modules`, `dist`, and `.DS_Store` are git-ignored and were checked as not tracked.
+- Trace events redact sensitive key names and token-shaped string values and truncate large payloads.
+- The frontend and API expose operational decisions, tool inputs/results/errors, evidence IDs, and conclusions, but not hidden chain-of-thought.
+- Final responses are rejected if they cite evidence IDs that were not actually collected.
