@@ -9,6 +9,8 @@ export interface DemoScenario {
   maxSteps: number;
 }
 
+export type ModelMode = "offline" | "gemini";
+
 interface ApiErrorPayload {
   error?: {
     code?: string;
@@ -49,6 +51,7 @@ export async function runInvestigationRequest(params: {
   objective: string;
   scenario: DemoScenario["id"];
   maxSteps?: number;
+  model?: ModelMode;
 }): Promise<InvestigationState> {
   const response = await fetch(`${API_BASE_URL}/api/investigate`, {
     method: "POST",
@@ -56,6 +59,7 @@ export async function runInvestigationRequest(params: {
     body: JSON.stringify({
       objective: params.objective,
       scenario: params.scenario,
+      model: params.model === "gemini" ? "gemini" : "fake",
       ...(params.maxSteps !== undefined ? { maxSteps: params.maxSteps } : {}),
     }),
   });
