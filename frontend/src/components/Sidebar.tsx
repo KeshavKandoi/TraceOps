@@ -88,7 +88,7 @@ export function Sidebar({ active, onSelect }: SidebarProps) {
           </span>
           <span className="badge badge-neutral">
             <span className="badge-dot" />
-            Demo data
+            Live API
           </span>
         </div>
         <div className="sidebar-footer-note">Caygnus Problem 4 · Observable Agent Loop</div>
