@@ -1,12 +1,13 @@
 import type { InvestigationResponse } from "../types";
 import { EmptyState } from "./EmptyState";
-import { IconFlag } from "../icons";
+import { IconFlag, IconTarget } from "../icons";
 
 interface ConclusionPanelProps {
   finalResponse: InvestigationResponse | null;
+  onSelectEvidence?: (evidenceId: string) => void;
 }
 
-export function ConclusionPanel({ finalResponse }: ConclusionPanelProps) {
+export function ConclusionPanel({ finalResponse, onSelectEvidence }: ConclusionPanelProps) {
   if (!finalResponse) {
     return (
       <EmptyState
@@ -19,11 +20,26 @@ export function ConclusionPanel({ finalResponse }: ConclusionPanelProps) {
 
   return (
     <div className="conclusion-panel">
+      <div className="conclusion-status-row">
+        <span className="badge badge-success">
+          <span className="badge-dot" />
+          Agent conclusion
+        </span>
+        <span className="conclusion-status-note">Derived from evidence below, not observed directly</span>
+      </div>
+
+      <div className="conclusion-objective">
+        <IconTarget aria-hidden="true" />
+        <span>{finalResponse.objective}</span>
+      </div>
+
       <div>
         <div className="header-eyebrow">Root cause</div>
         <div className="conclusion-root-cause">{finalResponse.rootCause}</div>
       </div>
-      <div className="conclusion-summary">{finalResponse.summary}</div>
+
+      <p className="conclusion-summary">{finalResponse.summary}</p>
+
       <div>
         <div className="header-eyebrow" style={{ marginBottom: 8 }}>
           Supporting evidence
@@ -32,11 +48,22 @@ export function ConclusionPanel({ finalResponse }: ConclusionPanelProps) {
           {finalResponse.evidenceIds.length === 0 && (
             <span className="evidence-chip">No evidence referenced</span>
           )}
-          {finalResponse.evidenceIds.map((id) => (
-            <span key={id} className="evidence-chip">
-              {id}
-            </span>
-          ))}
+          {finalResponse.evidenceIds.map((id) =>
+            onSelectEvidence ? (
+              <button
+                key={id}
+                type="button"
+                className="evidence-chip evidence-chip-link"
+                onClick={() => onSelectEvidence(id)}
+              >
+                {id}
+              </button>
+            ) : (
+              <span key={id} className="evidence-chip">
+                {id}
+              </span>
+            ),
+          )}
         </div>
       </div>
     </div>

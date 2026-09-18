@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import type { TraceEvent as TraceEventData, TraceEventType } from "../types";
+import { DetailTree } from "./DetailTree";
 import {
   IconTarget,
   IconBrain,
@@ -82,7 +83,7 @@ export function TraceEventRow({ event, stepNumber, isLast }: TraceEventProps) {
         </div>
         {!isLast && <div className="timeline-line" />}
       </div>
-      <div className="timeline-card">
+      <div className="timeline-card" style={{ borderLeft: `3px solid ${meta.tone}` }}>
         <button
           type="button"
           className="timeline-card-head"
@@ -90,7 +91,7 @@ export function TraceEventRow({ event, stepNumber, isLast }: TraceEventProps) {
           aria-expanded={open}
         >
           <div className="timeline-card-head-left">
-            <span className={`timeline-chevron${open ? " open" : ""}`}>
+            <span className={`timeline-chevron${open ? " open" : ""}`} aria-hidden="true">
               <IconChevronRight />
             </span>
             {stepNumber !== null && <span className="timeline-step">step {stepNumber}</span>}
@@ -100,8 +101,8 @@ export function TraceEventRow({ event, stepNumber, isLast }: TraceEventProps) {
           <span className="timeline-time">{time}</span>
         </button>
         {open && (
-          <div className="timeline-detail">
-            <pre>{JSON.stringify(event.details ?? {}, null, 2)}</pre>
+          <div className="timeline-detail" id={`trace-detail-${event.id}`}>
+            <DetailTree data={event.details ?? {}} />
           </div>
         )}
       </div>
