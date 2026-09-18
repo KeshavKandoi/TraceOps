@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "api": "tsx src/api.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
+    "start:api": "node dist/api.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start:gemini": "tsx src/run-gemini.ts"
