@@ -27,6 +27,22 @@ describe("GeminiModel", () => {
     });
   });
 
+  it("prompts Gemini with exact synthetic service names for tool arguments", async () => {
+    let prompt = "";
+    const client: GeminiApiClient = {
+      generateContent: async (params) => {
+        prompt = params.contents;
+        return { functionCalls: [{ name: "get_service_status", args: { service: "payment" } }] };
+      },
+    };
+    const model = new GeminiModel({ apiKey: "fake-key", client });
+
+    await model.decide(state);
+
+    expect(prompt).toContain("Available synthetic service names: payment, user, order, inventory, notification");
+    expect(prompt).toContain("Use these exact names in tool arguments.");
+  });
+
   it("translates a final function response into a ModelResponse", async () => {
     const client = clientReturning({
       functionCalls: [
