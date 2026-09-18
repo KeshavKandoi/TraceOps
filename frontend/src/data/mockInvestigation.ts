@@ -207,3 +207,132 @@ export const emptyInvestigation: InvestigationState = {
   trace: [],
   finalResponse: null,
 };
+
+// Second frontend-only demo scenario: the agent exhausts its step budget before
+// reaching a conclusion. Purely static mock data — no backend changes.
+export const stepLimitInvestigation: InvestigationState = {
+  objective: "Investigate intermittent checkout timeouts on the storefront",
+  status: "failed",
+  stepCount: 3,
+  maxSteps: 3,
+  stopReason: "step_limit_reached",
+  evidence: [
+    {
+      id: "evidence-4",
+      stepNumber: 1,
+      toolName: "get_service_status",
+      input: { service: "checkout" },
+      result: {
+        ok: true,
+        data: {
+          name: "checkout",
+          status: "degraded",
+          description: "Intermittent timeouts on session creation.",
+          dependencies: ["checkout-db", "inventory"],
+          last_updated: "2024-02-02T14:20:00Z",
+          on_call: "keshav.kandoi",
+        },
+      },
+      collectedAt: "2024-02-02T14:21:03Z",
+    },
+    {
+      id: "evidence-5",
+      stepNumber: 2,
+      toolName: "search_logs",
+      input: { service: "checkout", level: "warn" },
+      result: {
+        ok: true,
+        data: [
+          {
+            id: "log-0211",
+            timestamp: "2024-02-02T14:18:40Z",
+            service: "checkout",
+            level: "warn",
+            message: "Session creation latency above 2000ms for 6% of requests",
+          },
+        ],
+      },
+      collectedAt: "2024-02-02T14:21:10Z",
+    },
+    {
+      id: "evidence-6",
+      stepNumber: 3,
+      toolName: "get_metrics",
+      input: { service: "checkout" },
+      result: {
+        ok: true,
+        data: { p50_ms: 180, p95_ms: 2400, p99_ms: 4100, error_rate: 0.021 },
+      },
+      collectedAt: "2024-02-02T14:21:17Z",
+    },
+  ],
+  trace: [
+    {
+      id: "sl-trace-1",
+      timestamp: "2024-02-02T14:21:00Z",
+      type: "objective_set",
+      details: { objective: "Investigate intermittent checkout timeouts on the storefront" },
+    },
+    {
+      id: "sl-trace-2",
+      timestamp: "2024-02-02T14:21:01Z",
+      type: "model_decision",
+      details: { decision: "tool_call", toolName: "get_service_status", arguments: { service: "checkout" } },
+    },
+    {
+      id: "sl-trace-3",
+      timestamp: "2024-02-02T14:21:03Z",
+      type: "tool_call",
+      details: { toolName: "get_service_status", arguments: { service: "checkout" } },
+    },
+    {
+      id: "sl-trace-4",
+      timestamp: "2024-02-02T14:21:03Z",
+      type: "tool_result",
+      details: { toolName: "get_service_status", result: { ok: true } },
+    },
+    {
+      id: "sl-trace-5",
+      timestamp: "2024-02-02T14:21:08Z",
+      type: "model_decision",
+      details: { decision: "tool_call", toolName: "search_logs", arguments: { service: "checkout", level: "warn" } },
+    },
+    {
+      id: "sl-trace-6",
+      timestamp: "2024-02-02T14:21:10Z",
+      type: "tool_call",
+      details: { toolName: "search_logs", arguments: { service: "checkout", level: "warn" } },
+    },
+    {
+      id: "sl-trace-7",
+      timestamp: "2024-02-02T14:21:10Z",
+      type: "tool_result",
+      details: { toolName: "search_logs", result: { ok: true } },
+    },
+    {
+      id: "sl-trace-8",
+      timestamp: "2024-02-02T14:21:14Z",
+      type: "model_decision",
+      details: { decision: "tool_call", toolName: "get_metrics", arguments: { service: "checkout" } },
+    },
+    {
+      id: "sl-trace-9",
+      timestamp: "2024-02-02T14:21:17Z",
+      type: "tool_call",
+      details: { toolName: "get_metrics", arguments: { service: "checkout" } },
+    },
+    {
+      id: "sl-trace-10",
+      timestamp: "2024-02-02T14:21:17Z",
+      type: "tool_result",
+      details: { toolName: "get_metrics", result: { ok: true } },
+    },
+    {
+      id: "sl-trace-11",
+      timestamp: "2024-02-02T14:21:18Z",
+      type: "execution_limit_reached",
+      details: { stepCount: 3, maxSteps: 3 },
+    },
+  ],
+  finalResponse: null,
+};
