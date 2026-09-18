@@ -40,7 +40,7 @@ export interface GeminiApiClient {
 }
 
 const FINAL_RESPONSE_FUNCTION_NAME = "submit_final_response";
-const DEFAULT_MODEL_NAME = "gemini-3.6-flash";
+const DEFAULT_MODEL_NAME = "gemini-2.5-flash";
 
 const TOOL_FUNCTION_DECLARATIONS: FunctionDeclaration[] = toFunctionDeclarations(listToolSchemas());
 
