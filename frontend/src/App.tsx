@@ -6,7 +6,7 @@ import { EvidencePanel } from "./components/EvidencePanel";
 import { ConclusionPanel } from "./components/ConclusionPanel";
 import { ToolRegistry } from "./components/ToolRegistry";
 import { EmptyState } from "./components/EmptyState";
-import { fetchScenarios, fetchTools, runInvestigationRequest, type DemoScenario } from "./api";
+import { fetchScenarios, fetchTools, runInvestigationRequest, type DemoScenario, type ModelMode } from "./api";
 import { IconSettings, IconInbox, IconTarget } from "./icons";
 import type { InvestigationState, ToolMeta } from "./types";
 
@@ -81,6 +81,7 @@ export default function App() {
   const [tools, setTools] = useState<ToolMeta[]>([]);
   const [scenarios, setScenarios] = useState<DemoScenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario["id"]>("success");
+  const [modelMode, setModelMode] = useState<ModelMode>("offline");
   const [objective, setObjective] = useState("");
   const [maxSteps, setMaxSteps] = useState(8);
   const [isRunning, setIsRunning] = useState(false);
@@ -148,6 +149,7 @@ export default function App() {
         objective,
         scenario: selectedScenario,
         maxSteps,
+        model: modelMode,
       });
       setInvestigation(result);
       setSection("investigation");
@@ -160,7 +162,7 @@ export default function App() {
     } finally {
       setIsRunning(false);
     }
-  }, [maxSteps, objective, selectedScenario]);
+  }, [maxSteps, modelMode, objective, selectedScenario]);
 
   const handleSelectEvidence = useCallback((id: string) => {
     setSection("evidence");
@@ -199,6 +201,29 @@ export default function App() {
                   disabled={isRunning}
                 />
               </label>
+              <div className="run-field">
+                <span>Model</span>
+                <div className="model-switch" role="group" aria-label="Model">
+                  <button
+                    type="button"
+                    className="model-switch-option"
+                    aria-pressed={modelMode === "offline"}
+                    disabled={isRunning}
+                    onClick={() => setModelMode("offline")}
+                  >
+                    Offline
+                  </button>
+                  <button
+                    type="button"
+                    className="model-switch-option"
+                    aria-pressed={modelMode === "gemini"}
+                    disabled={isRunning}
+                    onClick={() => setModelMode("gemini")}
+                  >
+                    Gemini Live
+                  </button>
+                </div>
+              </div>
               <label className="run-field">
                 <span>Scenario</span>
                 <select
@@ -292,10 +317,11 @@ export default function App() {
                     <IconSettings />
                   </div>
                   <div className="settings-row-body">
-                    <div className="settings-row-title">Deterministic offline scenarios</div>
+                    <div className="settings-row-title">Model: Offline or Gemini Live</div>
                     <p className="settings-row-desc">
-                      The normal demo path calls the local TypeScript API and runs the real LangGraph agent with a
-                      FakeModel script. Gemini can be used from the server without exposing API keys to the browser.
+                      Offline runs the real LangGraph agent loop against a deterministic scripted scenario, with no
+                      network calls. Gemini Live runs the same loop against the real Gemini model on the server; the
+                      API key is never exposed to the browser.
                     </p>
                     {selectedScenarioData && (
                       <p className="settings-row-desc settings-row-desc-extra">
