@@ -49,7 +49,7 @@ describe("TraceOps API", () => {
 
   it("surfaces execution-limit termination through the API response", async () => {
     const body = await runApiInvestigation({
-      objective: "Investigate checkout latency",
+      objective: "Investigate order latency",
       scenario: "step_limit",
       model: "fake",
     });
