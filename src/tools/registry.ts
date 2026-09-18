@@ -8,6 +8,7 @@ import {
   GetMetricsInputSchema,
   GetServiceStatusInputSchema,
 } from "./schemas.js";
+import { toToolMeta, type ToolMeta } from "./metadata.js";
 
 const searchLogsTool: AnyToolDefinition = {
   name: "search_logs",
@@ -51,6 +52,10 @@ export function listTools(): Array<{ name: string; description: string }> {
     name: tool.name,
     description: tool.description,
   }));
+}
+
+export function listToolMetadata(): ToolMeta[] {
+  return registeredTools.map(toToolMeta);
 }
 
 export function listToolSchemas(): AnyToolDefinition[] {
