@@ -122,6 +122,15 @@ function parseModelResponse(value: unknown): ModelResponse | null {
   return parsed.success ? (parsed.data as ModelResponse) : null;
 }
 
+function hasOnlyCollectedEvidenceIds(response: ModelResponse, state: AgentState): boolean {
+  if (response.type !== "final") {
+    return true;
+  }
+
+  const collectedIds = new Set(state.evidence.map((entry) => entry.id));
+  return response.response.evidenceIds.every((id) => collectedIds.has(id));
+}
+
 function buildModelNode(model: Model, maxSteps: number) {
   return async (value: GraphStateType): Promise<Partial<GraphStateType>> => {
     if (value.stepCount >= maxSteps) {
@@ -161,6 +170,29 @@ function buildModelNode(model: Model, maxSteps: number) {
       });
       const stepped = incrementStep(withMessage);
       const traced = traceModelError(stepped, "Model returned a malformed response.");
+      return {
+        messages: traced.messages,
+        stepCount: traced.stepCount,
+        trace: traced.trace,
+        pendingToolCall: null,
+        stopReason: "malformed_response",
+      };
+    }
+
+    if (!hasOnlyCollectedEvidenceIds(response, agentState)) {
+      const invalidIds =
+        response.type === "final"
+          ? response.response.evidenceIds.filter(
+              (id) => !agentState.evidence.some((entry) => entry.id === id),
+            )
+          : [];
+      const message = `Model final response referenced unknown evidence IDs: ${invalidIds.join(", ")}`;
+      const withMessage = addMessage(agentState, {
+        role: "system",
+        content: message,
+      });
+      const stepped = incrementStep(withMessage);
+      const traced = traceModelError(stepped, message);
       return {
         messages: traced.messages,
         stepCount: traced.stepCount,
