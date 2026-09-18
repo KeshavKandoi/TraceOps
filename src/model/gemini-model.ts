@@ -8,6 +8,7 @@ import type { AgentState } from "../agent/state.js";
 import type { Model, ModelResponse } from "./model.js";
 import { listTools, listToolSchemas } from "../tools/registry.js";
 import { toFunctionDeclarations } from "./gemini-schema-adapter.js";
+import { loadServices } from "../tools/data-loader.js";
 
 export class GeminiModelError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -66,6 +67,8 @@ const ALL_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   FINAL_RESPONSE_FUNCTION_DECLARATION,
 ];
 
+const KNOWN_SERVICE_NAMES = loadServices().map((service) => service.name);
+
 function buildPrompt(state: AgentState): string {
   const evidenceSummary = state.evidence
     .map(
@@ -77,6 +80,7 @@ function buildPrompt(state: AgentState): string {
   const sections = [
     "You are TraceOps, an incident investigation agent.",
     `Objective: ${state.objective}`,
+    `Available synthetic service names: ${KNOWN_SERVICE_NAMES.join(", ")}. Use these exact names in tool arguments.`,
     state.evidence.length > 0
       ? `Evidence collected so far:\n${evidenceSummary}`
       : "No evidence has been collected yet.",
