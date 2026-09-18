@@ -83,10 +83,26 @@ function sendError(
   } satisfies ApiErrorResponse);
 }
 
+const MAX_REQUEST_BODY_BYTES = 100_000;
+
+export class RequestTooLargeError extends Error {
+  constructor() {
+    super("Request body exceeds the maximum allowed size.");
+    this.name = "RequestTooLargeError";
+  }
+}
+
 async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
+
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.length;
+    if (totalBytes > MAX_REQUEST_BODY_BYTES) {
+      throw new RequestTooLargeError();
+    }
+    chunks.push(buffer);
   }
 
   if (chunks.length === 0) {
@@ -159,7 +175,11 @@ async function handleInvestigation(request: IncomingMessage, response: ServerRes
   let body: unknown;
   try {
     body = await readJson(request);
-  } catch {
+  } catch (error) {
+    if (error instanceof RequestTooLargeError) {
+      sendError(response, 413, "payload_too_large", error.message);
+      return;
+    }
     sendError(response, 400, "invalid_json", "Request body must be valid JSON.");
     return;
   }
