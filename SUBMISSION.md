@@ -6,13 +6,15 @@
 
 **Project:** TraceOps
 
+**Repository:** https://github.com/KeshavKandoi/TraceOps
+
 ---
 
 ## 1. Project Summary
 
 TraceOps is an observable investigation agent that implements a multi-step model-driven loop for investigating service incidents.
 
-The system receives an objective, allows the model to select an appropriate investigation tool, validates the structured tool arguments, executes the tool through a centralized registry, stores the resulting evidence, records an operational trace, and returns the evidence to the model for the next decision.
+The system receives an objective, allows the model to select an appropriate investigation tool, validates the structured tool arguments, executes the tool through a centralized registry, stores the resulting evidence, records an ordered operational trace, and returns the tool result to the model for the next decision.
 
 The loop continues until the model produces a grounded final response or the configured execution limit is reached.
 
@@ -31,14 +33,14 @@ All investigation data in the repository is synthetic challenge data.
 
 ---
 
-## 2. Core Architecture
+## 2. Architecture
 
 ```text
                          ┌─────────────────────┐
                          │     React / Vite     │
                          │     TypeScript UI    │
                          └──────────┬──────────┘
-                                    │
+                                    │ HTTP
                                     ▼
                          ┌─────────────────────┐
                          │      Node API       │
@@ -74,11 +76,11 @@ All investigation data in the repository is synthetic challenge data.
                          │             └──────────────────┘
                          ▼
                 ┌─────────────────┐
-                │      Tool       │
+                │      Tools      │
                 │                 │
                 │ search_logs     │
                 │ get_metrics     │
-                │ get_service_   │
+                │ get_service_    │
                 │ status          │
                 └────────┬────────┘
                          │
