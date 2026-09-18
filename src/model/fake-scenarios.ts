@@ -51,7 +51,7 @@ export const demoScenarios: Record<DemoScenarioId, DemoScenario> = {
           rootCause: "payment-db connection pool exhaustion",
           summary:
             "The first metrics request failed validation, but the loop continued and found degraded payment-db status plus connection timeout errors.",
-          evidenceIds: ["evidence-1", "evidence-2", "evidence-3"],
+          evidenceIds: ["evidence-2", "evidence-3"],
           createdAt,
         },
       },
@@ -60,16 +60,16 @@ export const demoScenarios: Record<DemoScenarioId, DemoScenario> = {
   step_limit: {
     id: "step_limit",
     label: "Execution limit",
-    objective: "Investigate checkout latency with a two-step budget",
+    objective: "Investigate order latency with a two-step budget",
     maxSteps: 2,
     responses: [
-      { type: "tool_call", toolName: "get_service_status", arguments: { service: "checkout" } },
-      { type: "tool_call", toolName: "search_logs", arguments: { service: "checkout", level: "warn" } },
-      { type: "tool_call", toolName: "get_metrics", arguments: { service: "checkout" } },
+      { type: "tool_call", toolName: "get_service_status", arguments: { service: "order" } },
+      { type: "tool_call", toolName: "search_logs", arguments: { service: "order", level: "warn" } },
+      { type: "tool_call", toolName: "get_metrics", arguments: { service: "order" } },
       {
         type: "final",
         response: {
-          objective: "Investigate checkout latency with a two-step budget",
+          objective: "Investigate order latency with a two-step budget",
           rootCause: "Should not be reached",
           summary: "The execution limit should stop this scenario before a conclusion.",
           evidenceIds: ["evidence-1"],
