@@ -118,4 +118,26 @@ describe("agent graph", () => {
     expect(result.state.finalResponse).toBeNull();
     expect(model.calls).toBe(1);
   });
+
+  it("rejects final responses that reference evidence that was never collected", async () => {
+    const model = new FakeModel([
+      { type: "tool_call", toolName: "get_service_status", arguments: { service: "payment" } },
+      {
+        type: "final",
+        response: {
+          objective: "test objective",
+          rootCause: "root cause",
+          summary: "uses fabricated evidence",
+          evidenceIds: ["evidence-1", "evidence-999"],
+          createdAt: "2024-01-15T10:20:00Z",
+        },
+      },
+    ]);
+
+    const result = await runInvestigation("Investigate payment errors", { model, maxSteps: 10 });
+
+    expect(result.stopReason).toBe("malformed_response");
+    expect(result.state.finalResponse).toBeNull();
+    expect(result.state.evidence.map((entry) => entry.id)).toEqual(["evidence-1"]);
+  });
 });
