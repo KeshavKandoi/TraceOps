@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./load-env.js";
 import { runInvestigation } from "./agent/graph.js";
 import { createGeminiModel, GeminiModelError } from "./model/gemini-model.js";
 
