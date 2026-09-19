@@ -8,4 +8,4 @@ export interface ToolDefinition<Input, Output> {
   execute(input: Input): ToolResult<Output>;
 }
 
-export type AnyToolDefinition = ToolDefinition<any, any>;
+export type AnyToolDefinition = ToolDefinition<unknown, unknown>;
