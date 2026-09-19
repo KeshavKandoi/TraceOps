@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { GeminiModel, GeminiModelError, createGeminiModel } from "../../src/model/gemini-model.js";
-import { createInitialState } from "../../src/agent/state.js";
+import { addEvidence, createInitialState } from "../../src/agent/state.js";
 import type { GeminiApiClient, GeminiGenerateContentResult } from "../../src/model/gemini-model.js";
 
 const state = createInitialState("Investigate payment errors");
@@ -41,6 +41,29 @@ describe("GeminiModel", () => {
 
     expect(prompt).toContain("Available synthetic service names: payment, user, order, inventory, notification");
     expect(prompt).toContain("Use these exact names in tool arguments.");
+  });
+
+  it("labels TraceOps evidence IDs separately from underlying tool record IDs", async () => {
+    let prompt = "";
+    const client: GeminiApiClient = {
+      generateContent: async (params) => {
+        prompt = params.contents;
+        return { functionCalls: [{ name: "get_service_status", args: { service: "payment" } }] };
+      },
+    };
+    const evidenceState = addEvidence(createInitialState("Investigate payment errors"), {
+      toolName: "search_logs",
+      input: { service: "payment" },
+      result: { ok: true, data: { id: "log-0006", message: "connection pool exhausted" } },
+    });
+    const model = new GeminiModel({ apiKey: "fake-key", client });
+
+    await model.decide(evidenceState);
+
+    expect(prompt).toContain("TraceOps evidence ID: evidence-1");
+    expect(prompt).toContain('"id":"log-0006"');
+    expect(prompt).toContain("IDs inside a tool-result payload");
+    expect(prompt).toContain("are never valid evidenceIds");
   });
 
   it("translates a final function response into a ModelResponse", async () => {
