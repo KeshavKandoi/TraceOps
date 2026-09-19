@@ -6,6 +6,11 @@ Problem 4 — Observable Agent Loop
 
 Project: TraceOps
 
+## Demo Video
+
+[https://youtu.be/5tHj494YPTE](https://youtu.be/5tHj494YPTE)
+
+
 ## Project Summary
 
 TraceOps receives an investigation objective and runs a multi-step agent loop. The model selects one tool or submits a final response. Tool arguments are validated before dispatch through the centralized registry; the tool result becomes evidence in `AgentState`, an operational trace records the loop events, and the updated state is supplied to the next model decision. The loop ends with a grounded final response or the configured execution limit.
