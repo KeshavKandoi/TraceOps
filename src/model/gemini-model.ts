@@ -46,7 +46,8 @@ const TOOL_FUNCTION_DECLARATIONS: FunctionDeclaration[] = toFunctionDeclarations
 
 const FINAL_RESPONSE_FUNCTION_DECLARATION: FunctionDeclaration = {
   name: FINAL_RESPONSE_FUNCTION_NAME,
-  description: "Submit the final investigation conclusion once the root cause is known.",
+  description:
+    "Submit the final investigation conclusion once the root cause is known. evidenceIds must contain only the TraceOps evidence IDs listed in the current AgentState evidence context.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -54,8 +55,12 @@ const FINAL_RESPONSE_FUNCTION_DECLARATION: FunctionDeclaration = {
       summary: { type: Type.STRING, description: "A concise summary of the investigation findings." },
       evidenceIds: {
         type: Type.ARRAY,
-        description: "IDs of the evidence entries that support this conclusion.",
-        items: { type: Type.STRING },
+        description:
+          "TraceOps evidence IDs supporting this conclusion. Use only the exact evidence-* IDs currently listed in AgentState evidence; never use IDs found inside tool-result payloads.",
+        items: {
+          type: Type.STRING,
+          description: "An exact TraceOps evidence ID such as evidence-1, not an underlying record ID such as log-0006.",
+        },
       },
     },
     required: ["rootCause", "summary", "evidenceIds"],
@@ -73,7 +78,7 @@ function buildPrompt(state: AgentState): string {
   const evidenceSummary = state.evidence
     .map(
       (entry) =>
-        `- [step ${entry.stepNumber}] ${entry.toolName}(${JSON.stringify(entry.input)}) => ${JSON.stringify(entry.result)}`,
+        `- TraceOps evidence ID: ${entry.id} [step ${entry.stepNumber}] ${entry.toolName}(${JSON.stringify(entry.input)}) => Tool-result payload: ${JSON.stringify(entry.result)}`,
     )
     .join("\n");
 
@@ -82,9 +87,9 @@ function buildPrompt(state: AgentState): string {
     `Objective: ${state.objective}`,
     `Available synthetic service names: ${KNOWN_SERVICE_NAMES.join(", ")}. Use these exact names in tool arguments.`,
     state.evidence.length > 0
-      ? `Evidence collected so far:\n${evidenceSummary}`
+      ? `Evidence collected so far. For the final response, evidenceIds may contain ONLY the exact TraceOps evidence IDs after \"TraceOps evidence ID:\" below. IDs inside a tool-result payload (for example log-0006) identify underlying records and are data only; they are never valid evidenceIds.\n${evidenceSummary}`
       : "No evidence has been collected yet.",
-    `Decide the single next best action: call exactly one of the available tools to gather more evidence, or call ${FINAL_RESPONSE_FUNCTION_NAME} once you have enough evidence to state the root cause.`,
+    `Decide the single next best action: call exactly one of the available tools to gather more evidence, or call ${FINAL_RESPONSE_FUNCTION_NAME} once you have enough evidence to state the root cause. When submitting a final response, ground evidenceIds against the TraceOps evidence IDs currently supplied above and do not copy IDs from tool-result payloads.`,
   ];
 
   return sections.join("\n\n");
